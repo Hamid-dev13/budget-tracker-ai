@@ -7,7 +7,9 @@ services:
   app:
     build: ./dashboard
     ports:
-      - "3002:3000"
+      # Loopback par défaut. Sur le lab, BIND_ADDR=<ip tailscale> dans .env.
+      # Ne jamais publier sur 0.0.0.0 : l'API accepte des écritures sans authentification.
+      - "${BIND_ADDR:-127.0.0.1}:3002:3000"
     volumes:
       - ./data:/app/data
     # L'API écrit dans le bind mount : le conteneur doit porter l'uid du propriétaire
