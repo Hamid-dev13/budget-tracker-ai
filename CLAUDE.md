@@ -207,7 +207,16 @@ du répertoire et un environnement remplacerait les conteneurs d'un autre.
 
 ### Smoke tests post-deploy
 
+Le port n'est publié que sur `BIND_ADDR` — jamais sur `0.0.0.0`, et donc pas
+forcément sur la loopback. Sur le lab `BIND_ADDR` vaut l'IP Tailscale :
+`curl localhost:3000` y échoue **toujours**, déploiement sain ou non. L'URL se
+dérive du `.env`, elle ne se code pas en dur :
+
 ```bash
-curl -f http://localhost:3000/api/budget | jq '.soldeRestant'
+cd ~/.hermes/projects/budget-tracker-ai
+set -a; . ./.env; set +a
+curl -fsS "http://${BIND_ADDR:-127.0.0.1}:3000/api/budget" | jq '.soldeRestant'
 ```
-Si ça échoue → rollback immédiat.
+
+Si ça échoue → rollback immédiat. Mais vérifier d'abord que l'URL est la bonne :
+un `curl` sur la mauvaise adresse ferait annuler un déploiement qui va bien.
