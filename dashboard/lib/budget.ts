@@ -12,6 +12,14 @@ export function fmt(n: number): string {
   return n.toFixed(2).replace('.', ',') + ' €'
 }
 
+/**
+ * Montant arrondi à l'euro, pour les cases du calendrier sur petit écran :
+ * à 375 px une colonne fait ~45 px et « 110,70 € » n'y tient pas.
+ */
+export function fmtCourt(n: number): string {
+  return Math.round(n) + ' €'
+}
+
 /** Jour/mois, sans passer par un Date local qui décalerait au changement d'heure. */
 export function fmtDate(dateStr: string): string {
   const [, mois, jour] = dateStr.split('-')

@@ -20,7 +20,7 @@ export default function RootLayout({
           {/* Shell persistant : la sidebar est montée une seule fois, seul `children` change. */}
           <div className="flex min-h-screen bg-[#faf7f0] dark:bg-[#111111]">
             <Sidebar />
-            <main className="flex-1 ml-56 p-8">{children}</main>
+            <main className="flex-1 ml-14 sm:ml-56 p-4 sm:p-8 min-w-0">{children}</main>
           </div>
         </ThemeProvider>
       </body>

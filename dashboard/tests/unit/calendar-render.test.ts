@@ -67,4 +67,27 @@ describe('CalendarGrid — encombrement', () => {
     expect(markup).toContain('13,30 €')
     expect(markup).toContain('20,67 €')
   })
+
+  describe('petit écran', () => {
+    it('sert les deux formats de montant : court en dessous de sm, long au-dessus', () => {
+      const markup = html()
+      // Le format court remplace le long sur mobile, il ne s'y ajoute pas.
+      expect(markup).toContain('sm:hidden')
+      expect(markup).toContain('111 €')
+      expect(markup).toContain('110,70 €')
+    })
+
+    it('abrège les en-têtes de jours, « Lun » ne tient pas dans 45 px', () => {
+      const markup = html()
+      // Une initiale visible sous sm, le nom complet au-dessus.
+      expect(markup).toMatch(/>L<\/span>/)
+      expect(markup).toContain('>Lun<')
+    })
+
+    it('réduit la hauteur des cases et les espacements sous sm', () => {
+      const markup = html()
+      expect(markup).toContain('h-14 sm:h-16')
+      expect(markup).toContain('gap-0.5 sm:gap-1')
+    })
+  })
 })
