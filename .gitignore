@@ -7,3 +7,7 @@ node_modules/
 .next/
 dashboard/.next/
 data/budget.json
+data/budget.recette.json
+dashboard/dist/
+.env
+dashboard/tsconfig.tsbuildinfo

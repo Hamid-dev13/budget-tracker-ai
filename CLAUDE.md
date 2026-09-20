@@ -2,82 +2,136 @@
 
 ## Ce projet
 
-Budget tracker conversationnel. L'interface c'est Telegram — Hermes enregistre les dépenses via MCP et répond en jours de dette. Un dashboard Next.js visualise les données.
+Budget tracker conversationnel. L'interface c'est Telegram — Hermes enregistre les dépenses
+via MCP et répond en jours de dette. Un dashboard Next.js visualise les données.
 
 ## Stack
 
-- MCP Server : Python (mcp library)
-- Dashboard : Next.js 14 App Router + TypeScript + Tailwind
+- Une seule application TypeScript : Next.js 14 App Router + Tailwind
+- API HTTP (route handlers) : le seul point d'écriture de `budget.json`
+- Serveur MCP : `@modelcontextprotocol/sdk`, transport stdio, lancé par Hermes
+- Logique métier : `dashboard/lib/budget-logic.ts`, importée par l'API **et** par le MCP
 - Source de vérité : `data/budget.json` (bind mount Docker)
-- Docker Compose : 2 services (mcp + dashboard)
+- Tests : vitest (unitaire, intégration, API) + recette curl
 
 ## Règles absolues
 
-- Ne jamais écrire directement dans `budget.json` depuis le dashboard — lecture seule
-- Toujours passer par le MCP server pour modifier les données
+- Toute règle métier vit dans `lib/budget-logic.ts` — jamais dans un composant React,
+  jamais dupliquée. Le dashboard et Hermes doivent toujours annoncer le même chiffre.
+- Jamais de `new Date()` implicite dans un calcul : le jour courant est un paramètre.
+  Côté serveur il vient de `todayISO()` (fuseau Europe/Paris).
+- Seul `lib/budget-store.ts` écrit dans `budget.json`, et son écriture est atomique.
+- Le dashboard ne calcule rien : il consomme la vue renvoyée par `GET /api/budget`.
 - Le bind mount `./data:/app/data` ne doit jamais être remplacé par un volume Docker nommé
+- Le conteneur doit tourner avec l'uid propriétaire de `./data` sur l'hôte
+  (`user: "${APP_UID:-1000}:${APP_GID:-1000}"`, renseigné dans `.env`). L'image déclare
+  l'uid 1001 : sans cet override, **toute écriture échoue en EACCES**. Ça ne se voyait pas
+  tant que le dashboard était en lecture seule.
 - Pas de base de données — JSON suffit pour ce projet
 
-## Logique métier — dette en jours
+## Logique métier — la cagnotte cumulée
 
-```python
-# Plafond journalier fixe
-plafond_jour = solde_depart / jours_dans_le_mois
+Un seul modèle, dont tout découle :
 
-# Après une dépense
-depense_totale_jour = sum(depenses du jour)
-depassement = depense_totale_jour - plafond_jour
-dette_jours = depassement / plafond_jour  # peut être fractionnaire
-
-# Jours bloqués = ceil(dette_jours)
-# Le dernier jour bloqué peut être partiel (budget réduit)
 ```
+cagnotte(J) = (jours écoulés depuis date_debut, J inclus) × plafond_jour
+              − (dépenses cumulées sur la même fenêtre)
+
+plafond_jour = solde_depart / nb_jours_de_la_période    ← toujours recalculé
+```
+
+- `budget_aujourd_hui` = cagnotte si positive, sinon 0
+- `dette_jours` = cagnotte négative convertie en jours (`−cagnotte / plafond`), fractionnaire
+- `jours_bloqués` = `ceil(dette_jours)`
+- `date_reprise` = aujourd'hui + `jours_bloqués`, avec un budget partiel :
+  `(1 − frac(dette)) × plafond`
+
+Conséquence voulue : **un jour sans dépense rembourse la dette**. Le champ `plafond_jour`
+stocké dans le JSON est conservé pour la lisibilité mais toujours ignoré à la lecture.
 
 ## Outils MCP exposés
 
-- `init_budget(solde, date_fin)` — initialise le budget du mois
-- `add_expense(montant, description, date?)` — enregistre une dépense
-- `get_status()` — retourne solde, budget aujourd'hui, jours bloqués
-- `get_history(limit?)` — retourne l'historique des dépenses
+Mêmes signatures qu'avant, mais ils répondent un **résultat lisible** par l'agent
+(« 4 jours bloqués, reprise le 2026-09-24 avec 13,30 € »), jamais du JSON brut.
+
+- `init_budget(solde, date_fin, date_debut?)` — initialise la période
+- `add_expense(montant, description, date?)` — enregistre et annonce l'impact
+- `get_status(today?)` — solde, budget du jour, jours bloqués, reprise
+- `get_history(limit?)` — historique du plus récent au plus ancien
+
+## API HTTP
+
+| Route | Effet |
+|---|---|
+| `GET /api/budget?today=` | la vue calculée + `depenses`, `dateDebut`, `dateFin`, `today` |
+| `POST /api/budget` | `{solde, date_fin, date_debut?}` → initialise |
+| `GET /api/expenses?limit=` | historique |
+| `POST /api/expenses` | `{montant, description, date?}` → enregistre |
+
+Codes : `400` entrée invalide, `404` budget non initialisé, `500` fichier corrompu.
 
 ## Structure des fichiers
 
 ```
-mcp/server.py          # MCP server complet
-mcp/Dockerfile
-mcp/requirements.txt
-dashboard/app/page.tsx           # page unique
-dashboard/app/api/budget/route.ts # lit budget.json
-dashboard/Dockerfile
+dashboard/
+  lib/budget-logic.ts      # logique pure — LA source de vérité, aucune I/O
+  lib/budget-store.ts      # lecture/écriture atomique du JSON
+  lib/budget-service.ts    # les 4 opérations métier (API + MCP)
+  lib/errors.ts            # erreurs typées portant leur code HTTP
+  lib/budget.ts            # présentation seule : formatage, couleurs, agrégats de charts
+  app/api/budget/route.ts
+  app/api/expenses/route.ts
+  app/page.tsx             # dashboard (client, poll 30 s)
+  mcp/server.ts            # les 4 outils MCP
+  mcp/stdio.ts             # point d'entrée lancé par Hermes
+  scripts/smoke-mcp.mjs    # smoke test du binaire MCP
+  tests/                   # vitest : unit, integration, api
+tests/api/test_dashboard_api.sh  # recette curl
 data/budget.json                 # source de vérité
 docker-compose.yml
-```
-
-## Format budget.json
-
-```json
-{
-  "solde_depart": 248.0,
-  "date_debut": "2026-09-19",
-  "date_fin": "2026-09-30",
-  "plafond_jour": 22.50,
-  "depenses": [
-    {
-      "date": "2026-09-19",
-      "montant": 45.12,
-      "description": "Courses"
-    }
-  ]
-}
 ```
 
 ## Commandes utiles
 
 ```bash
-docker compose up --build    # lance tout
-docker compose logs mcp      # logs du MCP server
-docker compose logs dashboard # logs du dashboard
+# Développement
+cd dashboard && npm install
+BUDGET_PATH=$PWD/../data/budget.json npm run dev     # http://localhost:3000
+
+# Tests
+cd dashboard && npm test                              # vitest, toutes les couches
+npx tsc --noEmit                                      # typage
+
+# Recette API (sur un budget JETABLE — la recette écrit et supprime)
+docker compose -f docker-compose.recette.yml up -d --build     # port 3002
+BASE_URL=http://localhost:3002 ./tests/api/test_dashboard_api.sh
+docker compose -f docker-compose.recette.yml down && rm -f data/budget.recette.json
+
+# Serveur MCP
+cd dashboard && npm run build:mcp                     # → dist/mcp-server.mjs
+node scripts/smoke-mcp.mjs /chemin/budget-jetable.json
+
+# Docker
+docker compose up --build                             # prod, port 3000
+docker compose -f docker-compose.preprod.yml up       # preprod, port 3001
+docker compose logs app
 ```
+
+## Brancher Hermes
+
+Le serveur MCP est un binaire **stdio** : Hermes le lance, il ne tourne pas en démon.
+C'est pour cela qu'il n'y a plus de service `mcp` dans le Compose — un process stdio
+sans client attaché lit EOF et sort aussitôt.
+
+```json
+{
+  "command": "node",
+  "args": ["/chemin/vers/budget-tracker-ai/dashboard/dist/mcp-server.mjs"],
+  "env": { "BUDGET_PATH": "/chemin/vers/budget-tracker-ai/data/budget.json" }
+}
+```
+
+En transport stdio, **stdout appartient au protocole** : tout log passe par stderr.
 
 ## Stratégie de test (TDD)
 
@@ -88,35 +142,34 @@ Pas de code de production sans test qui échoue en premier. Cycle RED → GREEN 
 
 | Layer | Outil | Ce qu'on teste |
 |---|---|---|
-| Unitaire | `pytest` | Logique dette en jours, calculs |
-| Intégration | `pytest` + JSON réel | MCP tools end-to-end, lecture/écriture |
-| API | `curl` | Routes dashboard `/api/budget` |
+| Unitaire | `vitest` | `budget-logic.ts` : cagnotte, dette, jours bloqués, dates |
+| Intégration | `vitest` + JSON réel | store, service, et les outils MCP via un client en mémoire |
+| API | `vitest` + `curl` | handlers de routes, puis recette sur le serveur réel |
 | E2E | `browser_exec` (Playwright) | UI, calendrier, couleurs |
 
-### Structure des tests
+### Cas de régression à ne jamais perdre
 
-```
-tests/
-├── unit/
-│   └── test_budget_logic.py    # calculs purs
-├── integration/
-│   └── test_mcp_tools.py       # outils MCP avec JSON réel
-├── api/
-│   └── test_dashboard_api.sh   # curl sur les routes
-└── e2e/
-    └── test_dashboard_ui.py    # Playwright via browser_exec
-```
+- une période qui **franchit le 28 du mois** (l'ancienne version Python bouclait à l'infini) ;
+- le **changement d'heure** du 25/10 (un calcul de date en heure locale saute un jour) ;
+- la journée réelle du 19/09 : 110,70 € sur un plafond de 20,67 € → 4 jours bloqués,
+  reprise le 24/09 avec 13,30 €.
 
 ### Environnements
 
-- **Preprod** : `docker compose -f docker-compose.preprod.yml up` — port 3001, données de test
-- **Prod** : `docker compose up` — port 3000, données réelles
+- **Prod** : `docker compose up` — port 3000, `budget.json`
+- **Preprod** : `docker compose -f docker-compose.preprod.yml up` — port 3001, `budget.test.json`
+- **Recette** : `docker compose -f docker-compose.recette.yml up` — port 3002, `budget.recette.json`
 
-La preprod a son propre `data/budget.test.json` — jamais toucher aux données prod pour tester.
+Ne jamais lancer la recette ni tester une écriture contre la prod : elle écrit et supprime.
+
+Chaque fichier Compose déclare un `name:` distinct : sans lui, Compose réutilise le nom
+du répertoire et un environnement remplacerait les conteneurs d'un autre.
+
+`.env` (non versionné, modèle dans `.env.example`) porte `APP_UID`/`APP_GID`.
 
 ### Smoke tests post-deploy
 
 ```bash
-curl -f http://localhost:3000/api/budget | jq '.solde_restant'
+curl -f http://localhost:3000/api/budget | jq '.soldeRestant'
 ```
 Si ça échoue → rollback immédiat.

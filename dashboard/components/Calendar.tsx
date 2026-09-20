@@ -1,14 +1,16 @@
-import { DayStats } from '@/lib/types'
+import { JourStat } from '@/lib/types'
 import { fmt, statusColor } from '@/lib/budget'
 
 interface Props {
-  dayStats: DayStats[]
+  jours: JourStat[]
   dateDebut: string
+  /** Jour courant décidé par le serveur — jamais l'horloge du navigateur. */
+  today: string
 }
 
 const DAYS_FR = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 
-export default function CalendarGrid({ dayStats, dateDebut }: Props) {
+export default function CalendarGrid({ jours, dateDebut, today }: Props) {
   const debut = new Date(dateDebut + 'T00:00:00')
   // Get first day of month
   const firstOfMonth = new Date(debut.getFullYear(), debut.getMonth(), 1)
@@ -20,16 +22,13 @@ export default function CalendarGrid({ dayStats, dateDebut }: Props) {
   const daysInMonth = new Date(debut.getFullYear(), debut.getMonth() + 1, 0).getDate()
 
   // Build grid: empty cells + day cells
-  const cells: Array<{ day: number | null; stat: DayStats | null }> = []
+  const cells: Array<{ day: number | null; stat: JourStat | null }> = []
   for (let i = 0; i < startDow; i++) cells.push({ day: null, stat: null })
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${debut.getFullYear()}-${String(debut.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-    const stat = dayStats.find(s => s.date === dateStr) || null
+    const stat = jours.find(j => j.date === dateStr) || null
     cells.push({ day: d, stat })
   }
-
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
 
   return (
     <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 shadow-sm">
@@ -56,8 +55,7 @@ export default function CalendarGrid({ dayStats, dateDebut }: Props) {
 
           const color = cell.stat ? statusColor(cell.stat.status) : '#e5e7eb'
           const dateStr = `${debut.getFullYear()}-${String(debut.getMonth() + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`
-          const dayDate = new Date(dateStr + 'T00:00:00')
-          const isToday = dayDate.getTime() === today.getTime()
+          const isToday = dateStr === today
 
           return (
             <div

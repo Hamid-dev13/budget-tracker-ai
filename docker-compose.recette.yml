@@ -1,17 +1,17 @@
-# Preprod — port 3001, données de test.
-# `name` distinct : sans lui, Compose réutilise le nom du répertoire et
-# remplacerait les conteneurs de prod au lieu de tourner à côté.
-name: budget-tracker-preprod
+# Recette API — port 3002, budget JETABLE.
+# La recette écrit et supprime : ce Compose garantit que le serveur visé
+# pointe bien sur le fichier que le script pilote.
+name: budget-tracker-recette
 
 services:
   app:
     build: ./dashboard
     ports:
-      - "3001:3000"
+      - "3002:3000"
     volumes:
       - ./data:/app/data
     # L'API écrit dans le bind mount : le conteneur doit porter l'uid du propriétaire
     # de ./data sur l'hôte, sinon toute écriture échoue en EACCES.
     user: "${APP_UID:-1000}:${APP_GID:-1000}"
     environment:
-      - BUDGET_PATH=/app/data/budget.test.json
+      - BUDGET_PATH=/app/data/budget.recette.json

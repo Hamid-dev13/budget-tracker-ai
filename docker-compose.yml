@@ -1,18 +1,18 @@
-services:
-  mcp:
-    build: ./mcp
-    volumes:
-      - ./data:/app/data
-    environment:
-      - BUDGET_PATH=/app/data/budget.json
+# Production — port 3000, données réelles.
+# Un seul service : le serveur MCP est un binaire stdio lancé par Hermes à la demande
+# (voir CLAUDE.md), pas un démon. Un process stdio sans client attaché sort immédiatement.
+name: budget-tracker
 
-  dashboard:
+services:
+  app:
     build: ./dashboard
     ports:
       - "3000:3000"
     volumes:
       - ./data:/app/data
+    # L'API écrit dans le bind mount : le conteneur doit porter l'uid du propriétaire
+    # de ./data sur l'hôte, sinon toute écriture échoue en EACCES.
+    user: "${APP_UID:-1000}:${APP_GID:-1000}"
     environment:
       - BUDGET_PATH=/app/data/budget.json
-    depends_on:
-      - mcp
+    restart: unless-stopped

@@ -1,37 +1,15 @@
-export type Status = 'ok' | 'warn' | 'danger' | 'future' | 'info'
+/**
+ * Types partagés côté dashboard.
+ * La forme de la vérité est définie une seule fois, dans budget-logic.
+ */
+import type { Depense, JourStat, Status, VueBudget, BudgetData } from './budget-logic'
 
-export interface Depense {
-  date: string
-  montant: number
-  description: string
-}
+export type { Depense, JourStat, Status, VueBudget, BudgetData }
 
-export interface BudgetData {
-  solde_depart: number
-  date_debut: string
-  date_fin: string
-  plafond_jour: number
+/** Ce que renvoie GET /api/budget : la vue calculée, plus ce dont l'UI a besoin pour l'afficher. */
+export interface ReponseBudget extends VueBudget {
+  today: string
+  dateDebut: string
+  dateFin: string
   depenses: Depense[]
-}
-
-export interface DayStats {
-  date: string
-  depense: number
-  status: Status
-  budgetCumul: number
-  soldeFin: number
-}
-
-export interface ComputedBudget {
-  data: BudgetData
-  soldeRestant: number
-  depenseAujourdhui: number
-  budgetAujourdhui: number
-  detteJours: number
-  repriseDateStr: string
-  status: Status
-  totalDepenses: number
-  dayStats: DayStats[]
-  pieData: { name: string; value: number }[]
-  lineData: { date: string; solde: number }[]
 }
