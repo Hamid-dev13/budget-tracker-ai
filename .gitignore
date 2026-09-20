@@ -1,0 +1,9 @@
+data/budget.json
+data/*.db
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+.next/
+dashboard/.next/
+data/budget.json
