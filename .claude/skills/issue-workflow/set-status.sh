@@ -23,11 +23,18 @@ case "$status" in
   *) echo "statut inconnu : '$status' (Todo | In Progress | Done)" >&2; exit 64 ;;
 esac
 
-item=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json \
-  | jq -r --argjson n "$issue" '.items[] | select(.content.number == $n) | .id')
+# Une issue tout juste ajoutée au board met quelques secondes à y apparaître.
+item=""
+for _ in 1 2 3; do
+  item=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --limit 200 --format json \
+    | jq -r --argjson n "$issue" '.items[] | select(.content.number == $n) | .id')
+  [[ -n "$item" ]] && break
+  sleep 2
+done
 
 if [[ -z "$item" ]]; then
-  echo "issue #$issue absente du board — ajoute-la avec 'gh project item-add'" >&2
+  echo "issue #$issue absente du board — ajoute-la avec :" >&2
+  echo "  gh project item-add $PROJECT_NUMBER --owner $OWNER --url <url-de-l-issue>" >&2
   exit 1
 fi
 

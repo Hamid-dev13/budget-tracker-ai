@@ -57,22 +57,32 @@ export default function CalendarGrid({ jours, dateDebut, today }: Props) {
           const dateStr = `${debut.getFullYear()}-${String(debut.getMonth() + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`
           const isToday = dateStr === today
 
+          const aVenir = cell.stat?.status === 'future'
+          const montant = cell.stat && cell.stat.depense > 0 ? fmt(cell.stat.depense) : null
+
           return (
             <div
               key={cell.day}
-              className="aspect-square rounded-lg flex flex-col items-center justify-center relative"
+              // Hauteur bornée : avec `aspect-square`, une colonne large donnait une
+              // cellule aussi haute et le mois débordait du viewport.
+              className="h-16 rounded-lg flex flex-col items-center justify-center gap-0.5 relative"
               style={{ backgroundColor: color }}
               title={cell.stat ? fmt(cell.stat.depense) : ''}
             >
               <span
-                className={`font-inter font-black text-sm ${
-                  cell.stat?.status === 'future' ? 'text-gray-400' : 'text-white'
+                className={`font-inter font-black text-sm leading-none ${
+                  aVenir ? 'text-gray-400' : 'text-white'
                 }`}
               >
                 {cell.day}
               </span>
+              {montant && (
+                <span className="font-inter text-[10px] leading-none text-white/90 tabular-nums">
+                  {montant}
+                </span>
+              )}
               {isToday && (
-                <span className="absolute bottom-1 w-1 h-1 bg-white rounded-full opacity-90" />
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-white rounded-full opacity-90" />
               )}
             </div>
           )

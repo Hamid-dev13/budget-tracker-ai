@@ -40,7 +40,7 @@ BODY
 )"
 ```
 
-L'issue est ajoutée au board automatiquement. Vérifier qu'elle y est, sinon :
+L'issue **n'est pas** ajoutée au board toute seule — c'est une étape à part :
 
 ```bash
 gh project item-add 5 --owner Hamid-dev13 --url <url-de-l-issue>
