@@ -137,6 +137,31 @@ sans client attaché lit EOF et sort aussitôt.
 
 En transport stdio, **stdout appartient au protocole** : tout log passe par stderr.
 
+## Déploiement sur le home lab
+
+Le lab (`hamidhomeserver`, Tailscale `100.98.46.26`) héberge les deux moitiés :
+
+```bash
+ssh hamid@100.98.46.26
+cd ~/.hermes/projects/budget-tracker-ai
+git pull origin main
+docker compose up -d --build        # dashboard → http://100.98.46.26:3000
+```
+
+`.env` y contient `APP_UID`/`APP_GID` (droits du bind mount) et
+`BIND_ADDR=100.98.46.26` (le port n'écoute que sur Tailscale).
+
+Pour le MCP, après un changement de la logique ou des outils :
+
+```bash
+cd dashboard && npm run build:mcp
+scp dist/mcp-server.mjs hamid@100.98.46.26:~/.hermes/mcp/budget/
+ssh hamid@100.98.46.26 docker restart hermes
+```
+
+Node n'est pas installé sur l'hôte du lab, mais le conteneur `hermes` embarque Node v26
+et monte `~/.hermes` sur `/opt/data` — d'où les chemins `/opt/data/...` dans `config.yaml`.
+
 ## Stratégie de test (TDD)
 
 ### Règle absolue
