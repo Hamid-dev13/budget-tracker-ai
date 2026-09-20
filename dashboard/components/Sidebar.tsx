@@ -1,63 +1,63 @@
 'use client'
 
+import { usePathname, useRouter } from 'next/navigation'
+import { LayoutDashboard, History, Calendar, Settings, Sun, Moon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 
 const NAV_ITEMS = [
-  { label: 'Tableau de bord', icon: '◉' },
-  { label: 'Calendrier', icon: '⬛' },
-  { label: 'Graphiques', icon: '↗' },
-  { label: 'Transactions', icon: '≡' },
+  { label: 'Dashboard',  href: '/',           icon: LayoutDashboard },
+  { label: 'Historique', href: '/historique', icon: History },
+  { label: 'Calendrier', href: '/calendrier', icon: Calendar },
+  { label: 'Paramètres', href: '/parametres', icon: Settings },
 ]
 
 export default function Sidebar() {
+  const pathname = usePathname()
+  const router = useRouter()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-
   useEffect(() => setMounted(true), [])
 
   return (
-    <aside className="fixed top-0 left-0 h-screen w-64 bg-[#f0ebe0] dark:bg-[#0d0d0d] border-r border-gray-200 dark:border-gray-800 flex flex-col z-50">
-      {/* Logo */}
-      <div className="px-6 py-8 border-b border-gray-200 dark:border-gray-800">
-        <span className="font-playfair text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
-          Budget<span className="text-warn">.</span>AI
+    <aside className="fixed top-0 left-0 h-screen w-56 bg-[#0d0d0d] flex flex-col z-50">
+      <div className="px-6 py-8">
+        <span className="font-playfair text-2xl font-bold text-white">
+          Budget<span className="text-[#f97316]">.</span>
         </span>
-        <p className="font-inter text-xs uppercase tracking-widest text-gray-400 mt-1">
-          Tracker Intelligent
-        </p>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-4 py-6 space-y-1">
-        {NAV_ITEMS.map((item, i) => (
-          <div
-            key={item.label}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all ${
-              i === 0
-                ? 'border-l-4 border-warn bg-warn/10 text-warn'
-                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-100'
-            }`}
-          >
-            <span className="text-lg">{item.icon}</span>
-            <span className="font-inter font-bold text-sm uppercase tracking-wide">
-              {item.label}
-            </span>
-          </div>
-        ))}
+      <nav className="flex-1 px-3 space-y-1">
+        {NAV_ITEMS.map((item) => {
+          const active = pathname === item.href
+          const Icon = item.icon
+          return (
+            <button
+              key={item.href}
+              onClick={() => router.push(item.href)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${
+                active
+                  ? 'border-l-[3px] border-[#f97316] text-white pl-[9px]'
+                  : 'text-[#555] hover:text-[#999] border-l-[3px] border-transparent'
+              }`}
+            >
+              <Icon size={16} strokeWidth={active ? 2.5 : 1.5} />
+              <span className="text-sm font-bold uppercase tracking-wide">{item.label}</span>
+            </button>
+          )
+        })}
       </nav>
 
-      {/* Dark mode toggle */}
-      <div className="px-6 py-6 border-t border-gray-200 dark:border-gray-800">
+      <div className="px-3 py-6">
         {mounted && (
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:opacity-80 transition-opacity"
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-[#555] hover:text-[#999] transition-all"
           >
-            <span className="font-inter font-bold text-sm uppercase tracking-wide">
-              {theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}
+            {theme === 'dark' ? <Sun size={16} strokeWidth={1.5} /> : <Moon size={16} strokeWidth={1.5} />}
+            <span className="text-sm font-bold uppercase tracking-wide">
+              {theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
             </span>
-            <span className="text-xl">{theme === 'dark' ? '☀️' : '🌙'}</span>
           </button>
         )}
       </div>

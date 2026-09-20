@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget Tracker — C Notebook</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Playfair+Display:wght@700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root[data-theme="light"] {
+      --bg: #ffffff;
+      --bg-card: #ffffff;
+      --bg-sidebar: #ffffff;
+      --border: #111111;
+      --border-light: #e5e7eb;
+      --text: #111111;
+      --text-muted: #999999;
+      --ok: #22c55e;
+      --warn: #f97316;
+      --danger: #ef4444;
+      --future: #f5f5f5;
+      --future-text: #cccccc;
+      --today-ring: #111111;
+      --accent: #f97316;
+    }
+    :root[data-theme="dark"] {
+      --bg: #111111;
+      --bg-card: #1a1a1a;
+      --bg-sidebar: #0d0d0d;
+      --border: #ffffff;
+      --border-light: rgba(255,255,255,0.1);
+      --text: #f5f5f5;
+      --text-muted: #666666;
+      --ok: #22c55e;
+      --warn: #f97316;
+      --danger: #ef4444;
+      --future: #222222;
+      --future-text: #444444;
+      --today-ring: #f97316;
+      --accent: #f97316;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.2s, color 0.2s; }
+
+    .layout { display: flex; min-height: 100vh; }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 220px; flex-shrink: 0;
+      background: var(--bg-sidebar);
+      border-right: 3px solid var(--border);
+      padding: 36px 24px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px; font-weight: 900;
+      color: var(--text); margin-bottom: 36px;
+    }
+    .logo span { color: var(--accent); }
+    .nav {
+      padding: 10px 12px;
+      font-size: 12px; font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer; transition: all 0.15s;
+      border-left: 3px solid transparent;
+      margin-left: -12px; padding-left: 12px;
+    }
+    .nav.active { border-left-color: var(--accent); color: var(--text); }
+    .nav:hover:not(.active) { color: var(--text); }
+
+    /* MAIN */
+    .main { flex: 1; padding: 40px; overflow-y: auto; }
+
+    /* TOPBAR */
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+    .page-title { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-muted); }
+    .toggle {
+      padding: 7px 18px; border-radius: 99px;
+      border: 2px solid var(--border);
+      font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em;
+      background: transparent; color: var(--text); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .toggle:hover { background: var(--text); color: var(--bg); }
+
+    /* HERO */
+    .hero {
+      display: flex; align-items: flex-end; gap: 20px;
+      padding-bottom: 32px; margin-bottom: 0;
+      border-bottom: 3px solid var(--border);
+    }
+    .hero-label {
+      font-size: 10px; font-weight: 900; text-transform: uppercase;
+      letter-spacing: 0.2em; color: var(--text-muted);
+      writing-mode: vertical-rl; transform: rotate(180deg);
+    }
+    .hero-amount {
+      font-family: 'Playfair Display', serif;
+      font-size: 96px; font-weight: 900; line-height: 0.9;
+      color: var(--text); letter-spacing: -0.02em;
+    }
+    .hero-currency {
+      font-family: 'Playfair Display', serif;
+      font-size: 40px; font-weight: 900;
+      color: var(--accent); vertical-align: super;
+      margin-left: 4px;
+    }
+    .hero-right { margin-left: auto; text-align: right; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+    .hero-badge {
+      display: inline-block; background: var(--danger); color: #fff;
+      padding: 5px 14px; border-radius: 99px;
+      font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;
+    }
+    .hero-badge.ok { background: var(--ok); }
+    .hero-badge.warn { background: var(--warn); }
+    .hero-sub { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* KPI GRID — bordures style notebook */
+    .kpi-grid {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      border-top: 3px solid var(--border);
+      border-left: 3px solid var(--border);
+      margin-bottom: 0;
+    }
+    .kpi {
+      padding: 20px; border-right: 3px solid var(--border); border-bottom: 3px solid var(--border);
+      position: relative;
+    }
+    .kpi-bar { height: 3px; width: 40px; margin-bottom: 14px; }
+    .kpi-label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); margin-bottom: 6px; }
+    .kpi-val { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 900; color: var(--text); }
+    .kpi-val.danger { color: var(--danger); }
+    .kpi-val.warn { color: var(--warn); }
+    .kpi-val.ok { color: var(--ok); }
+    .kpi-sub { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+
+    /* GRID */
+    .grid-2 {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border-left: 3px solid var(--border);
+    }
+    .grid-3 {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      border-left: 3px solid var(--border);
+    }
+    .card {
+      padding: 24px;
+      border-right: 3px solid var(--border);
+      border-bottom: 3px solid var(--border);
+    }
+    .card-title { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.16em; color: var(--text-muted); margin-bottom: 20px; }
+
+    /* CALENDRIER — sans hover zoom */
+    .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; }
+    .cal-head { font-size: 9px; font-weight: 900; text-transform: uppercase; color: var(--text-muted); text-align: center; padding-bottom: 6px; }
+    .cal-day {
+      aspect-ratio: 1; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 900;
+      cursor: default;
+    }
+    .cal-day.ok { background: var(--ok); color: #fff; }
+    .cal-day.warn { background: var(--warn); color: #fff; }
+    .cal-day.bad { background: var(--danger); color: #fff; }
+    .cal-day.future { background: var(--future); color: var(--future-text); }
+    .cal-day.today { outline: 2.5px solid var(--today-ring); outline-offset: 2px; }
+    .cal-day.empty { background: transparent; }
+
+    /* COURBE SVG */
+    .chart-line { width: 100%; height: 120px; }
+
+    /* CAMEMBERT SVG */
+    .chart-pie { width: 160px; height: 160px; margin: 0 auto; }
+    .pie-legend { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; color: var(--text-muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* TRANSACTIONS */
+    .tx-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-light); }
+    .tx-row:last-child { border: none; }
+    .tx-desc { font-size: 13px; font-weight: 700; color: var(--text); }
+    .tx-date { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-muted); }
+    .tx-amt { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: var(--danger); }
+
+    /* REFRESH */
+    .refresh { display: flex; align-items: center; gap: 6px; padding: 16px 24px; border-bottom: 3px solid var(--border); }
+    .refresh-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .refresh-text { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-family: 'Space Mono', monospace; }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">Budget<span>.</span></div>
+    <div class="nav active">Dashboard</div>
+    <div class="nav">Historique</div>
+    <div class="nav">Calendrier</div>
+    <div class="nav">Paramètres</div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="page-title">Septembre 2026</div>
+      <button class="toggle" onclick="toggleTheme()">Light / Dark</button>
+    </div>
+
+    <!-- REFRESH -->
+    <div class="refresh">
+      <div class="refresh-dot"></div>
+      <span class="refresh-text">Mis à jour il y a 12 secondes</span>
+    </div>
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-label">Solde restant</div>
+      <div>
+        <div class="hero-amount">137<span class="hero-currency">.30€</span></div>
+      </div>
+      <div class="hero-right">
+        <div class="hero-badge">⚠ Bloqué</div>
+        <div class="hero-sub">248€ départ · 20.67€/jour</div>
+        <div class="hero-sub">Reprise le 23 sept</div>
+      </div>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-bar" style="background:var(--danger)"></div>
+        <div class="kpi-label">Aujourd'hui</div>
+        <div class="kpi-val danger">0€</div>
+        <div class="kpi-sub">Bloqué</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-bar" style="background:var(--warn)"></div>
+        <div class="kpi-label">Dette</div>
+        <div class="kpi-val warn">3.9j</div>
+        <div class="kpi-sub">À rendre</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-bar" style="background:var(--ok)"></div>
+        <div class="kpi-label">Reprise</div>
+        <div class="kpi-val ok">23/09</div>
+        <div class="kpi-sub">Retour normal</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-bar" style="background:#3b82f6"></div>
+        <div class="kpi-label">Dépensé</div>
+        <div class="kpi-val">110.70€</div>
+        <div class="kpi-sub">Aujourd'hui</div>
+      </div>
+    </div>
+
+    <!-- ROW : Calendrier + Camembert -->
+    <div class="grid-2">
+
+      <!-- CALENDRIER -->
+      <div class="card">
+        <div class="card-title">Calendrier — Septembre</div>
+        <div class="cal-grid">
+          <div class="cal-head">L</div><div class="cal-head">M</div><div class="cal-head">M</div><div class="cal-head">J</div><div class="cal-head">V</div><div class="cal-head">S</div><div class="cal-head">D</div>
+          <div class="cal-day future">1</div><div class="cal-day future">2</div><div class="cal-day future">3</div><div class="cal-day future">4</div><div class="cal-day future">5</div><div class="cal-day future">6</div><div class="cal-day future">7</div>
+          <div class="cal-day future">8</div><div class="cal-day future">9</div><div class="cal-day future">10</div><div class="cal-day future">11</div><div class="cal-day future">12</div><div class="cal-day future">13</div><div class="cal-day future">14</div>
+          <div class="cal-day future">15</div><div class="cal-day future">16</div><div class="cal-day future">17</div><div class="cal-day future">18</div>
+          <div class="cal-day bad today">19</div><div class="cal-day bad">20</div><div class="cal-day bad">21</div>
+          <div class="cal-day bad">22</div><div class="cal-day warn">23</div>
+          <div class="cal-day ok">24</div><div class="cal-day ok">25</div><div class="cal-day ok">26</div><div class="cal-day ok">27</div><div class="cal-day ok">28</div>
+          <div class="cal-day ok">29</div><div class="cal-day ok">30</div>
+          <div class="cal-day empty"></div><div class="cal-day empty"></div><div class="cal-day empty"></div><div class="cal-day empty"></div><div class="cal-day empty"></div>
+        </div>
+      </div>
+
+      <!-- CAMEMBERT -->
+      <div class="card">
+        <div class="card-title">Répartition des dépenses</div>
+        <svg class="chart-pie" viewBox="0 0 160 160">
+          <!-- Camembert calculé : Courses 41%, Boucherie 30%, Pharma 13%, Sagali 9%, Autres 7% -->
+          <!-- Courses : 41% = 147.6deg, start=0 -->
+          <path d="M80,80 L80,10 A70,70 0 0,1 148.6,57.5 Z" fill="#ef4444"/>
+          <!-- Boucherie : 30% = 108deg -->
+          <path d="M80,80 L148.6,57.5 A70,70 0 0,1 106.4,148.6 Z" fill="#f97316"/>
+          <!-- Pharma : 13% = 46.8deg -->
+          <path d="M80,80 L106.4,148.6 A70,70 0 0,1 47.2,141.8 Z" fill="#3b82f6"/>
+          <!-- Sagali : 9% = 32.4deg -->
+          <path d="M80,80 L47.2,141.8 A70,70 0 0,1 19.3,108.4 Z" fill="#a855f7"/>
+          <!-- Autres : 7% = 25.2deg -->
+          <path d="M80,80 L19.3,108.4 A70,70 0 0,1 80,10 Z" fill="#22c55e"/>
+          <circle cx="80" cy="80" r="35" fill="var(--bg-card)"/>
+          <text x="80" y="76" text-anchor="middle" font-size="11" font-weight="900" fill="var(--text-muted)" font-family="Inter">Total</text>
+          <text x="80" y="90" text-anchor="middle" font-size="14" font-weight="900" fill="var(--text)" font-family="Playfair Display, serif">110€</text>
+        </svg>
+        <div class="pie-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Courses — 45.12€</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Boucherie — 33.00€</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Pharmacie — 13.89€</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#a855f7"></div>Sagali — 9.90€</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Autres — 8.79€</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COURBE ÉVOLUTION SOLDE -->
+    <div class="card" style="border-left:3px solid var(--border);">
+      <div class="card-title">Évolution du solde — Septembre</div>
+      <svg class="chart-line" viewBox="0 0 700 120" preserveAspectRatio="none">
+        <!-- Grille -->
+        <line x1="0" y1="20" x2="700" y2="20" stroke="var(--border-light)" stroke-width="1"/>
+        <line x1="0" y1="60" x2="700" y2="60" stroke="var(--border-light)" stroke-width="1"/>
+        <line x1="0" y1="100" x2="700" y2="100" stroke="var(--border-light)" stroke-width="1"/>
+        <!-- Labels Y -->
+        <text x="4" y="18" font-size="8" fill="var(--text-muted)" font-family="Space Mono, monospace">248€</text>
+        <text x="4" y="58" font-size="8" fill="var(--text-muted)" font-family="Space Mono, monospace">160€</text>
+        <text x="4" y="98" font-size="8" fill="var(--text-muted)" font-family="Space Mono, monospace">80€</text>
+        <!-- Aire sous la courbe -->
+        <path d="M30,22 L250,22 L280,22 L310,22 L340,22 L370,22 L400,22 L430,22 L460,22 L490,22 L520,22 L540,95 L700,95 L700,110 L30,110 Z"
+              fill="var(--accent)" opacity="0.08"/>
+        <!-- Ligne courbe -->
+        <polyline
+          points="30,22 250,22 280,22 310,22 340,22 370,22 400,22 430,22 460,22 490,22 520,22 540,95 560,95 580,95 600,95 620,55 640,30 660,25 680,20"
+          fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <!-- Point aujourd'hui -->
+        <circle cx="540" cy="95" r="5" fill="var(--danger)" stroke="var(--bg-card)" stroke-width="2"/>
+        <text x="540" y="88" font-size="8" fill="var(--danger)" text-anchor="middle" font-family="Space Mono, monospace" font-weight="700">137€</text>
+        <!-- Labels X -->
+        <text x="30" y="116" font-size="8" fill="var(--text-muted)" text-anchor="middle" font-family="Space Mono, monospace">1</text>
+        <text x="250" y="116" font-size="8" fill="var(--text-muted)" text-anchor="middle" font-family="Space Mono, monospace">15</text>
+        <text x="540" y="116" font-size="8" fill="var(--danger)" text-anchor="middle" font-family="Space Mono, monospace" font-weight="700">19</text>
+        <text x="680" y="116" font-size="8" fill="var(--text-muted)" text-anchor="middle" font-family="Space Mono, monospace">30</text>
+      </svg>
+    </div>
+
+    <!-- HISTORIQUE -->
+    <div class="card" style="border-left:3px solid var(--border);">
+      <div class="card-title">Historique des dépenses</div>
+      <div>
+        <div class="tx-row"><div><div class="tx-desc">Courses</div><div class="tx-date">2026-09-19</div></div><div class="tx-amt">-45.12€</div></div>
+        <div class="tx-row"><div><div class="tx-desc">Boucherie</div><div class="tx-date">2026-09-19</div></div><div class="tx-amt">-33.00€</div></div>
+        <div class="tx-row"><div><div class="tx-desc">Gde Pharmacie Proven</div><div class="tx-date">2026-09-19</div></div><div class="tx-amt">-13.89€</div></div>
+        <div class="tx-row"><div><div class="tx-desc">Sagali</div><div class="tx-date">2026-09-19</div></div><div class="tx-amt">-9.90€</div></div>
+        <div class="tx-row"><div><div class="tx-desc">Afrawa Market</div><div class="tx-date">2026-09-19</div></div><div class="tx-amt">-7.80€</div></div>
+        <div class="tx-row"><div><div class="tx-desc">Auchan</div><div class="tx-date">2026-09-19</div></div><div class="tx-amt">-0.99€</div></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  html.dataset.theme = html.dataset.theme === 'light' ? 'dark' : 'light';
+  localStorage.setItem('theme', html.dataset.theme);
+}
+const saved = localStorage.getItem('theme');
+if (saved) document.documentElement.dataset.theme = saved;
+</script>
+</body>
+</html>

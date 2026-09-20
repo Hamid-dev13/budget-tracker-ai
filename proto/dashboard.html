@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root[data-theme="dark"] {
+      --bg: #111111;
+      --bg-card: #1c1c1c;
+      --border: rgba(255,255,255,0.08);
+      --text: #ffffff;
+      --text-muted: #6b7280;
+      --text-sub: #9ca3af;
+      --ok: #22c55e;
+      --warn: #f97316;
+      --danger: #ef4444;
+      --future: #374151;
+      --future-text: #4b5563;
+      --today-ring: #3b82f6;
+      --bar-1: #f97316;
+      --bar-2: #22c55e;
+      --bar-3: #3b82f6;
+      --bar-4: #a855f7;
+      --bar-5: #ef4444;
+    }
+    :root[data-theme="light"] {
+      --bg: #f5f5f5;
+      --bg-card: #ffffff;
+      --border: #e5e7eb;
+      --text: #111111;
+      --text-muted: #6b7280;
+      --text-sub: #9ca3af;
+      --ok: #16a34a;
+      --warn: #ea580c;
+      --danger: #dc2626;
+      --future: #e5e7eb;
+      --future-text: #9ca3af;
+      --today-ring: #2563eb;
+      --bar-1: #f97316;
+      --bar-2: #16a34a;
+      --bar-3: #2563eb;
+      --bar-4: #9333ea;
+      --bar-5: #dc2626;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* LAYOUT */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      padding: 32px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sidebar-logo {
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar-logo-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--ok);
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .nav-item:hover { background: var(--border); color: var(--text); }
+    .nav-item.active { background: var(--text); color: var(--bg); }
+    .nav-icon { font-size: 16px; }
+
+    /* MAIN */
+    .main { flex: 1; padding: 32px; overflow-y: auto; }
+
+    /* TOPBAR */
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+    .page-title {
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+    }
+    .toggle-theme {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 16px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .toggle-theme:hover { border-color: var(--text); }
+
+    /* HERO */
+    .hero {
+      text-align: center;
+      padding: 48px 0 40px;
+      margin-bottom: 24px;
+    }
+    .hero-label {
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .hero-amount {
+      font-size: 72px;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--warn);
+      letter-spacing: -0.02em;
+    }
+    .hero-amount.ok { color: var(--ok); }
+    .hero-amount.danger { color: var(--danger); }
+    .hero-sub {
+      margin-top: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    /* KPI CARDS */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .kpi-card.ok::before { background: var(--ok); }
+    .kpi-card.warn::before { background: var(--warn); }
+    .kpi-card.danger::before { background: var(--danger); }
+    .kpi-card.blue::before { background: #3b82f6; }
+    .kpi-label {
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+    .kpi-value.ok { color: var(--ok); }
+    .kpi-value.warn { color: var(--warn); }
+    .kpi-value.danger { color: var(--danger); }
+    .kpi-sub {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* GRID 2 COLS */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    /* CARD */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .card-title {
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    /* CALENDRIER */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .cal-header {
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      text-align: center;
+      padding-bottom: 6px;
+    }
+    .cal-day {
+      aspect-ratio: 1;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 0.1s;
+      position: relative;
+    }
+    .cal-day:hover { transform: scale(1.1); }
+    .cal-day.ok { background: var(--ok); color: #fff; }
+    .cal-day.warn { background: var(--warn); color: #fff; }
+    .cal-day.danger { background: var(--danger); color: #fff; }
+    .cal-day.future { background: var(--future); color: var(--future-text); }
+    .cal-day.today { outline: 2px solid var(--today-ring); outline-offset: 2px; }
+    .cal-day.empty { background: transparent; }
+
+    /* BAR CHART */
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      height: 120px;
+      padding-bottom: 8px;
+    }
+    .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .bar {
+      width: 100%;
+      border-radius: 4px 4px 0 0;
+      transition: height 0.3s;
+      min-height: 4px;
+    }
+    .bar-label {
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    /* TRANSACTIONS */
+    .tx-list { display: flex; flex-direction: column; gap: 0; }
+    .tx-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .tx-row:last-child { border-bottom: none; }
+    .tx-left { display: flex; flex-direction: column; gap: 2px; }
+    .tx-desc {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .tx-date {
+      font-size: 10px;
+      font-weight: 700;
+      font-family: monospace;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .tx-amount {
+      font-size: 14px;
+      font-weight: 900;
+      font-family: monospace;
+      color: var(--danger);
+    }
+
+    /* BADGE */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 99px;
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .badge.danger { background: var(--danger); color: #fff; }
+    .badge.warn { background: var(--warn); color: #fff; }
+    .badge.ok { background: var(--ok); color: #fff; }
+
+    /* REFRESH INDICATOR */
+    .refresh-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 24px;
+    }
+    .refresh-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--ok);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .refresh-text {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-dot"></div>
+      Budget AI
+    </div>
+    <div class="nav-item active"><span class="nav-icon">◈</span> Dashboard</div>
+    <div class="nav-item"><span class="nav-icon">◉</span> Historique</div>
+    <div class="nav-item"><span class="nav-icon">◎</span> Calendrier</div>
+    <div class="nav-item"><span class="nav-icon">○</span> Paramètres</div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="page-title">Septembre 2026</div>
+      <button class="toggle-theme" onclick="toggleTheme()">☀ Light / ◆ Dark</button>
+    </div>
+
+    <!-- REFRESH -->
+    <div class="refresh-bar">
+      <div class="refresh-dot"></div>
+      <span class="refresh-text">Mis à jour il y a 12 secondes</span>
+    </div>
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-label">Solde restant</div>
+      <div class="hero-amount warn">137.30€</div>
+      <div class="hero-sub">sur 248.00€ · 20.67€/jour</div>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="kpi-grid">
+      <div class="kpi-card danger">
+        <div class="kpi-label">Aujourd'hui</div>
+        <div class="kpi-value danger">0€</div>
+        <div class="kpi-sub">Jour bloqué</div>
+      </div>
+      <div class="kpi-card warn">
+        <div class="kpi-label">Dette</div>
+        <div class="kpi-value warn">3.92j</div>
+        <div class="kpi-sub">Jours bloqués</div>
+      </div>
+      <div class="kpi-card ok">
+        <div class="kpi-label">Reprise</div>
+        <div class="kpi-value ok">23 sept</div>
+        <div class="kpi-sub">Retour normal</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">Dépensé</div>
+        <div class="kpi-value">110.70€</div>
+        <div class="kpi-sub">Aujourd'hui</div>
+      </div>
+    </div>
+
+    <!-- GRID 2 COLS -->
+    <div class="grid-2">
+
+      <!-- CALENDRIER -->
+      <div class="card">
+        <div class="card-title">Calendrier — Septembre</div>
+        <div class="calendar-grid">
+          <div class="cal-header">L</div>
+          <div class="cal-header">M</div>
+          <div class="cal-header">M</div>
+          <div class="cal-header">J</div>
+          <div class="cal-header">V</div>
+          <div class="cal-header">S</div>
+          <div class="cal-header">D</div>
+          <!-- Semaine 1 : 1-7 -->
+          <div class="cal-day future">1</div>
+          <div class="cal-day future">2</div>
+          <div class="cal-day future">3</div>
+          <div class="cal-day future">4</div>
+          <div class="cal-day future">5</div>
+          <div class="cal-day future">6</div>
+          <div class="cal-day future">7</div>
+          <!-- Semaine 2 : 8-14 -->
+          <div class="cal-day future">8</div>
+          <div class="cal-day future">9</div>
+          <div class="cal-day future">10</div>
+          <div class="cal-day future">11</div>
+          <div class="cal-day future">12</div>
+          <div class="cal-day future">13</div>
+          <div class="cal-day future">14</div>
+          <!-- Semaine 3 : 15-21 -->
+          <div class="cal-day future">15</div>
+          <div class="cal-day future">16</div>
+          <div class="cal-day future">17</div>
+          <div class="cal-day future">18</div>
+          <div class="cal-day danger today">19</div>
+          <div class="cal-day danger">20</div>
+          <div class="cal-day danger">21</div>
+          <!-- Semaine 4 : 22-28 -->
+          <div class="cal-day danger">22</div>
+          <div class="cal-day warn">23</div>
+          <div class="cal-day ok">24</div>
+          <div class="cal-day ok">25</div>
+          <div class="cal-day ok">26</div>
+          <div class="cal-day ok">27</div>
+          <div class="cal-day ok">28</div>
+          <!-- Semaine 5 : 29-30 -->
+          <div class="cal-day ok">29</div>
+          <div class="cal-day ok">30</div>
+          <div class="cal-day empty"></div>
+          <div class="cal-day empty"></div>
+          <div class="cal-day empty"></div>
+          <div class="cal-day empty"></div>
+          <div class="cal-day empty"></div>
+        </div>
+      </div>
+
+      <!-- BAR CHART -->
+      <div class="card">
+        <div class="card-title">Dépenses par jour</div>
+        <div class="bar-chart">
+          <div class="bar-group">
+            <div class="bar" style="height:8px; background:#374151;"></div>
+            <div class="bar-label">15</div>
+          </div>
+          <div class="bar-group">
+            <div class="bar" style="height:8px; background:#374151;"></div>
+            <div class="bar-label">16</div>
+          </div>
+          <div class="bar-group">
+            <div class="bar" style="height:8px; background:#374151;"></div>
+            <div class="bar-label">17</div>
+          </div>
+          <div class="bar-group">
+            <div class="bar" style="height:8px; background:#374151;"></div>
+            <div class="bar-label">18</div>
+          </div>
+          <div class="bar-group">
+            <div class="bar" style="height:100px; background: var(--danger);"></div>
+            <div class="bar-label">19</div>
+          </div>
+          <div class="bar-group">
+            <div class="bar" style="height:8px; background:#374151;"></div>
+            <div class="bar-label">20</div>
+          </div>
+          <div class="bar-group">
+            <div class="bar" style="height:8px; background:#374151;"></div>
+            <div class="bar-label">21</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div class="card">
+      <div class="card-title">Historique des dépenses</div>
+      <div class="tx-list">
+        <div class="tx-row">
+          <div class="tx-left">
+            <div class="tx-desc">Courses</div>
+            <div class="tx-date">2026-09-19 · 09:21</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div class="tx-amount">-45.12€</div>
+          </div>
+        </div>
+        <div class="tx-row">
+          <div class="tx-left">
+            <div class="tx-desc">Boucherie</div>
+            <div class="tx-date">2026-09-19 · 10:15</div>
+          </div>
+          <div class="tx-amount">-33.00€</div>
+        </div>
+        <div class="tx-row">
+          <div class="tx-left">
+            <div class="tx-desc">Sagali</div>
+            <div class="tx-date">2026-09-19 · 14:30</div>
+          </div>
+          <div class="tx-amount">-9.90€</div>
+        </div>
+        <div class="tx-row">
+          <div class="tx-left">
+            <div class="tx-desc">Afrawa Market</div>
+            <div class="tx-date">2026-09-19 · 14:45</div>
+          </div>
+          <div class="tx-amount">-7.80€</div>
+        </div>
+        <div class="tx-row">
+          <div class="tx-left">
+            <div class="tx-desc">Gde Pharmacie Proven</div>
+            <div class="tx-date">2026-09-19 · 15:10</div>
+          </div>
+          <div class="tx-amount">-13.89€</div>
+        </div>
+        <div class="tx-row">
+          <div class="tx-left">
+            <div class="tx-desc">Auchan</div>
+            <div class="tx-date">2026-09-19 · 16:02</div>
+          </div>
+          <div class="tx-amount">-0.99€</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', html.dataset.theme);
+  }
+  const saved = localStorage.getItem('theme');
+  if (saved) document.documentElement.dataset.theme = saved;
+</script>
+</body>
+</html>

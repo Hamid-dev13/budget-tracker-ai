@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Playfair+Display:wght@700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root[data-theme="light"] {
+      --bg:#faf7f0;--bg-sidebar:#f0ebe0;--bg-card:#ffffff;
+      --border-sidebar:#e0d8c8;--border-card:#e8e0d0;--grid-line:#ede8df;
+      --text:#111111;--text-muted:#888888;
+      --ok:#22c55e;--warn:#f97316;--danger:#ef4444;--blue:#3b82f6;
+      --future-bg:#ede8df;--future-text:#c0b8a8;
+    }
+    :root[data-theme="dark"] {
+      --bg:#111111;--bg-sidebar:#0d0d0d;--bg-card:#1c1c1c;
+      --border-sidebar:#222222;--border-card:#2a2a2a;--grid-line:#222222;
+      --text:#f5f5f5;--text-muted:#666666;
+      --ok:#22c55e;--warn:#f97316;--danger:#ef4444;--blue:#3b82f6;
+      --future-bg:#1e1e1e;--future-text:#3a3a3a;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .2s,color .2s;}
+    .layout{display:flex;min-height:100vh;}
+    .sidebar{width:220px;flex-shrink:0;background:var(--bg-sidebar);border-right:2px solid var(--border-sidebar);padding:32px 20px;display:flex;flex-direction:column;gap:4px;}
+    .logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--text);margin-bottom:32px;}
+    .logo span{color:var(--warn);}
+    .nav{padding:10px 12px;font-size:12px;font-weight:700;color:var(--text-muted);cursor:pointer;transition:all .15s;border-left:3px solid transparent;margin-left:-12px;padding-left:12px;border-radius:0 6px 6px 0;}
+    .nav.active{border-left-color:var(--warn);color:var(--text);}
+    .nav:hover:not(.active){color:var(--text);background:var(--border-sidebar);}
+    .main{flex:1;padding:32px;overflow-y:auto;}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;}
+    .page-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.18em;color:var(--text-muted);}
+    .topbar-right{display:flex;align-items:center;gap:10px;}
+    .refresh-info{font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:5px;}
+    .rdot{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:pulse 2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .toggle{padding:7px 16px;border-radius:99px;border:2px solid var(--border-card);font-size:11px;font-weight:900;text-transform:uppercase;background:var(--bg-card);color:var(--text);cursor:pointer;transition:all .15s;}
+    .toggle:hover{border-color:var(--text);}
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+    .kpi{border-radius:14px;padding:20px;color:#fff;}
+    .kpi.red{background:var(--danger);}
+    .kpi.orange{background:var(--warn);}
+    .kpi.green{background:var(--ok);}
+    .kpi.blue{background:var(--blue);}
+    .kpi-label{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;opacity:.8;margin-bottom:6px;}
+    .kpi-val{font-size:28px;font-weight:900;letter-spacing:-.02em;}
+    .kpi-sub{font-size:11px;font-weight:700;opacity:.75;text-transform:uppercase;margin-top:4px;}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+    .card{background:var(--bg-card);border-radius:14px;border:2px solid var(--border-card);padding:22px;}
+    .card-full{background:var(--bg-card);border-radius:14px;border:2px solid var(--border-card);padding:22px;margin-bottom:12px;}
+    .card-title{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.16em;color:var(--text-muted);margin-bottom:18px;}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+    .cal-head{font-size:9px;font-weight:900;text-transform:uppercase;color:var(--text-muted);text-align:center;padding-bottom:5px;}
+    .cal-day{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;}
+    .cal-day.ok{background:var(--ok);color:#fff;}
+    .cal-day.warn{background:var(--warn);color:#fff;}
+    .cal-day.bad{background:var(--danger);color:#fff;}
+    .cal-day.partial{background:var(--warn);color:#fff;opacity:.7;}
+    .cal-day.future{background:var(--future-bg);color:var(--future-text);}
+    .cal-day.today{outline:2.5px solid var(--text);outline-offset:2px;}
+    .cal-day.empty{background:transparent;}
+    .pie-wrap{display:flex;gap:20px;align-items:center;}
+    .pie-legend{display:flex;flex-direction:column;gap:8px;flex:1;}
+    .legend-item{display:flex;align-items:center;gap:8px;}
+    .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+    .legend-label{font-size:12px;font-weight:700;color:var(--text);}
+    .legend-amt{font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted);margin-left:auto;}
+    .chart-svg{width:100%;overflow:visible;}
+    .tx-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border-card);}
+    .tx-row:last-child{border:none;}
+    .tx-desc{font-size:13px;font-weight:700;}
+    .tx-date{font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);}
+    .tx-amt{font-family:'Space Mono',monospace;font-size:13px;font-weight:900;color:var(--danger);}
+    .loading{text-align:center;padding:80px;font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;}
+  </style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">Budget<span>.</span></div>
+    <div class="nav active">Dashboard</div>
+    <div class="nav">Historique</div>
+    <div class="nav">Calendrier</div>
+    <div class="nav">Param&egrave;tres</div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <div class="page-title" id="page-title">Chargement...</div>
+      <div class="topbar-right">
+        <div class="refresh-info"><div class="rdot"></div><span id="refresh-label">En cours...</span></div>
+        <button class="toggle" onclick="toggleTheme()">Light / Dark</button>
+      </div>
+    </div>
+    <div id="app"><div class="loading">Chargement des donn&eacute;es...</div></div>
+  </main>
+</div>
+<script>
+function toggleTheme(){
+  var html=document.documentElement;
+  html.dataset.theme=html.dataset.theme==='light'?'dark':'light';
+  localStorage.setItem('theme',html.dataset.theme);
+}
+var saved=localStorage.getItem('theme');
+if(saved) document.documentElement.dataset.theme=saved;
+
+function fmt(n){return n.toFixed(2).replace('.',',')+'€';}
+
+function calcStatus(data){
+  var today=new Date().toISOString().split('T')[0];
+  var debut=new Date(data.date_debut);
+  var plafond=data.plafond_jour;
+  var depParJour={};
+  data.depenses.forEach(function(d){depParJour[d.date]=(depParJour[d.date]||0)+d.montant;});
+  var cagnotte=0;
+  var cur=new Date(debut);
+  var todayDate=new Date(today);
+  while(cur<=todayDate){
+    var iso=cur.toISOString().split('T')[0];
+    cagnotte+=plafond;
+    cagnotte-=(depParJour[iso]||0);
+    cur.setDate(cur.getDate()+1);
+  }
+  var budgetAujourdhui=Math.max(0,cagnotte);
+  var totalDep=data.depenses.reduce(function(s,d){return s+d.montant;},0);
+  var soldeRestant=data.solde_depart-totalDep;
+  var depJour=depParJour[today]||0;
+  var depassement=Math.max(0,depJour-plafond);
+  var dette=depassement/plafond;
+  var joursBlockes=Math.floor(dette);
+  var fraction=dette-joursBlockes;
+  var reprise=new Date(todayDate);
+  reprise.setDate(reprise.getDate()+joursBlockes+(fraction>0?1:0));
+  return{budgetAujourdhui:budgetAujourdhui,soldeRestant:soldeRestant,dette:dette,joursBlockes:joursBlockes,reprise:reprise,depJour:depJour,plafond:plafond,depParJour:depParJour,today:today};
+}
+
+function jourStatut(dateStr,depParJour,plafond,todayStr,debut,fin){
+  var d=new Date(dateStr),today=new Date(todayStr),debutD=new Date(debut),finD=new Date(fin);
+  if(d<debutD||d>finD) return 'empty';
+  if(d>today) return 'future';
+  var dep=depParJour[dateStr]||0;
+  if(dep===0) return 'ok';
+  if(dep<=plafond) return 'ok';
+  var dette2=(dep-plafond)/plafond;
+  return dette2<1?'partial':'bad';
+}
+
+function render(data){
+  var s=calcStatus(data);
+  var now=new Date();
+  document.getElementById('page-title').textContent=
+    now.toLocaleDateString('fr-FR',{month:'long',year:'numeric'}).replace(/^./,function(c){return c.toUpperCase();});
+  document.getElementById('refresh-label').textContent=
+    'Mis à jour à '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+
+  var heroColor=s.soldeRestant<50?'var(--danger)':s.soldeRestant<120?'var(--warn)':'var(--ok)';
+  var badgeClass=s.joursBlockes>0?'red':s.dette>0?'orange':'green';
+  var badgeText=s.joursBlockes>0?'⚠ Bloqué':s.dette>0?'⚡ Partiel':'✓ OK';
+
+  // Calendrier
+  var calDays=[];
+  var debut=new Date(data.date_debut);
+  var fin=new Date(data.date_fin);
+  var firstDay=new Date(debut.getFullYear(),debut.getMonth(),1);
+  var dow=(firstDay.getDay()+6)%7;
+  for(var i=0;i<dow;i++) calDays.push({n:'',cls:'empty'});
+  var last=new Date(debut.getFullYear(),debut.getMonth()+1,0).getDate();
+  for(var d2=1;d2<=last;d2++){
+    var iso2=debut.getFullYear()+'-'+String(debut.getMonth()+1).padStart(2,'0')+'-'+String(d2).padStart(2,'0');
+    var cls=jourStatut(iso2,s.depParJour,s.plafond,s.today,data.date_debut,data.date_fin);
+    calDays.push({n:d2,cls:cls,isToday:iso2===s.today});
+  }
+
+  // Camembert
+  var colors=['#ef4444','#f97316','#3b82f6','#a855f7','#22c55e','#f59e0b','#06b6d4'];
+  var depSort=data.depenses.slice().sort(function(a,b){return b.montant-a.montant;});
+  var total=depSort.reduce(function(s,d){return s+d.montant;},0);
+  var angle=-Math.PI/2;
+  var slices=depSort.slice(0,5).map(function(d,i){
+    var pct=d.montant/total;
+    var a1=angle,a2=angle+pct*2*Math.PI;
+    angle=a2;
+    var x1=80+65*Math.cos(a1),y1=80+65*Math.sin(a1);
+    var x2=80+65*Math.cos(a2),y2=80+65*Math.sin(a2);
+    var large=pct>0.5?1:0;
+    return{path:'M80,80 L'+x1.toFixed(1)+','+y1.toFixed(1)+' A65,65 0 '+large+',1 '+x2.toFixed(1)+','+y2.toFixed(1)+' Z',color:colors[i],desc:d.description,montant:d.montant};
+  });
+
+  // Courbe
+  var points=[];
+  var runSolde=data.solde_depart;
+  var cur2=new Date(debut);
+  var todayD=new Date(s.today);
+  while(cur2<=todayD){
+    var iso3=cur2.toISOString().split('T')[0];
+    runSolde-=(s.depParJour[iso3]||0);
+    points.push({day:(cur2-debut)/86400000,solde:runSolde});
+    cur2.setDate(cur2.getDate()+1);
+  }
+  var totalDays=(fin-debut)/86400000+1;
+  var maxSolde=data.solde_depart;
+  var cW=600,cH=140,pL=52,pR=16,pT=16,pB=28;
+  var iW=cW-pL-pR,iH=cH-pT-pB;
+  function px(day){return pL+(day/(totalDays-1))*iW;}
+  function py(solde){return pT+iH-(solde/maxSolde)*iH;}
+  var yVals=[0,Math.round(maxSolde*0.33),Math.round(maxSolde*0.66),maxSolde];
+  var gridLines=yVals.map(function(v){return{y:py(v),label:v+'€'};});
+  var pts=points.map(function(p){return px(p.day).toFixed(1)+','+py(p.solde).toFixed(1);}).join(' ');
+  var lastP=points[points.length-1];
+  var aStart=lastP?'M'+px(points[0].day).toFixed(1)+','+py(points[0].solde).toFixed(1):'M'+pL+','+pT;
+  var aBody=points.map(function(p){return 'L'+px(p.day).toFixed(1)+','+py(p.solde).toFixed(1);}).join(' ');
+  var aEnd=lastP?' L'+px(lastP.day).toFixed(1)+','+(pT+iH)+' L'+pL+','+(pT+iH)+' Z':'';
+  var areaPath=aStart+' '+aBody+aEnd;
+
+  // HTML build
+  var h='';
+
+  // Hero
+  h+='<div style="text-align:center;padding:28px 0 22px;">';
+  h+='<div style="font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.2em;color:var(--text-muted);margin-bottom:8px;">Solde restant</div>';
+  h+='<div style="font-size:76px;font-weight:900;letter-spacing:-.03em;line-height:1;color:'+heroColor+'">'+fmt(s.soldeRestant)+'</div>';
+  h+='<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-top:8px;">'+fmt(data.solde_depart)+' départ &middot; '+fmt(s.plafond)+'/jour</div>';
+  h+='</div>';
+
+  // KPI
+  h+='<div class="kpi-grid">';
+  h+='<div class="kpi '+badgeClass+'"><div class="kpi-label">Aujourd&#39;hui</div><div class="kpi-val">'+fmt(s.budgetAujourdhui)+'</div><div class="kpi-sub">'+badgeText+'</div></div>';
+  h+='<div class="kpi orange"><div class="kpi-label">Dette</div><div class="kpi-val">'+s.dette.toFixed(2)+'j</div><div class="kpi-sub">À rendre</div></div>';
+  var rStr=s.joursBlockes>0?(s.reprise.getDate()+'/'+String(s.reprise.getMonth()+1).padStart(2,'0')):"Auj.";
+  h+='<div class="kpi green"><div class="kpi-label">Reprise</div><div class="kpi-val">'+rStr+'</div><div class="kpi-sub">Retour normal</div></div>';
+  h+='<div class="kpi blue"><div class="kpi-label">Dépensé</div><div class="kpi-val">'+fmt(s.depJour)+'</div><div class="kpi-sub">Aujourd&#39;hui</div></div>';
+  h+='</div>';
+
+  // Calendrier + Camembert
+  h+='<div class="grid-2">';
+  h+='<div class="card"><div class="card-title">Calendrier</div><div class="cal-grid">';
+  ['L','M','M','J','V','S','D'].forEach(function(d){h+='<div class="cal-head">'+d+'</div>';});
+  calDays.forEach(function(d){h+='<div class="cal-day '+d.cls+(d.isToday?' today':'')+'">'+d.n+'</div>';});
+  h+='</div></div>';
+
+  h+='<div class="card"><div class="card-title">Répartition des dépenses</div>';
+  h+='<div class="pie-wrap">';
+  h+='<svg width="130" height="130" viewBox="0 0 160 160" style="flex-shrink:0">';
+  slices.forEach(function(sl){h+='<path d="'+sl.path+'" fill="'+sl.color+'"/>';});
+  h+='<circle cx="80" cy="80" r="38" fill="var(--bg-card)"/>';
+  h+='<text x="80" y="76" text-anchor="middle" font-size="10" font-weight="900" fill="var(--text-muted)" font-family="Inter,sans-serif">TOTAL</text>';
+  h+='<text x="80" y="93" text-anchor="middle" font-size="15" font-weight="900" fill="var(--text)" font-family="Inter,sans-serif">'+fmt(total)+'</text>';
+  h+='</svg>';
+  h+='<div class="pie-legend">';
+  slices.forEach(function(sl){
+    var lbl=sl.desc.length>15?sl.desc.slice(0,15)+'…':sl.desc;
+    h+='<div class="legend-item"><div class="legend-dot" style="background:'+sl.color+'"></div><span class="legend-label">'+lbl+'</span><span class="legend-amt">'+fmt(sl.montant)+'</span></div>';
+  });
+  h+='</div></div></div>';
+  h+='</div>';
+
+  // Courbe
+  h+='<div class="card-full"><div class="card-title">Évolution du solde — '+now.toLocaleDateString('fr-FR',{month:'long',year:'numeric'})+'</div>';
+  h+='<svg class="chart-svg" viewBox="0 0 '+cW+' '+cH+'" height="160">';
+  gridLines.forEach(function(g){
+    h+='<line x1="'+pL+'" y1="'+g.y.toFixed(1)+'" x2="'+(cW-pR)+'" y2="'+g.y.toFixed(1)+'" stroke="var(--grid-line)" stroke-width="1"/>';
+    h+='<text x="'+(pL-5)+'" y="'+(g.y+4).toFixed(1)+'" text-anchor="end" font-size="10" font-weight="700" fill="var(--text-muted)" font-family="Space Mono,monospace">'+g.label+'</text>';
+  });
+  h+='<path d="'+areaPath+'" fill="var(--warn)" opacity="0.1"/>';
+  if(pts) h+='<polyline points="'+pts+'" fill="none" stroke="var(--warn)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+  // Labels X
+  h+='<text x="'+px(0).toFixed(0)+'" y="'+(pT+iH+18)+'" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-muted)" font-family="Space Mono,monospace">1</text>';
+  h+='<text x="'+px(Math.floor(totalDays/2)).toFixed(0)+'" y="'+(pT+iH+18)+'" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-muted)" font-family="Space Mono,monospace">'+(Math.floor(totalDays/2)+1)+'</text>';
+  h+='<text x="'+px(totalDays-1).toFixed(0)+'" y="'+(pT+iH+18)+'" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-muted)" font-family="Space Mono,monospace">'+totalDays+'</text>';
+  if(lastP){
+    var tx=px(lastP.day).toFixed(1),ty=py(lastP.solde).toFixed(1);
+    h+='<circle cx="'+tx+'" cy="'+ty+'" r="5" fill="var(--danger)" stroke="var(--bg-card)" stroke-width="2"/>';
+    h+='<text x="'+tx+'" y="'+(parseFloat(ty)-10)+'" text-anchor="middle" font-size="10" font-weight="900" fill="var(--danger)" font-family="Space Mono,monospace">'+fmt(lastP.solde)+'</text>';
+  }
+  h+='</svg></div>';
+
+  // Historique
+  h+='<div class="card-full"><div class="card-title">Historique</div>';
+  data.depenses.slice().reverse().forEach(function(d){
+    h+='<div class="tx-row"><div><div class="tx-desc">'+d.description+'</div><div class="tx-date">'+d.date+'</div></div><div class="tx-amt">-'+fmt(d.montant)+'</div></div>';
+  });
+  h+='</div>';
+
+  document.getElementById('app').innerHTML=h;
+}
+
+function load(){
+  fetch('/data/budget.json?t='+Date.now())
+    .then(function(r){return r.json();})
+    .then(function(data){render(data);})
+    .catch(function(e){document.getElementById('app').innerHTML='<div class="loading">Erreur: '+e.message+'</div>';});
+}
+
+load();
+setInterval(load,30000);
+</script>
+</body>
+</html>

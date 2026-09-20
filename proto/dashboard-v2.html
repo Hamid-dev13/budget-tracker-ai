@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget Tracker — 3 Propositions</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Playfair+Display:wght@700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; }
+
+    /* SWITCHER */
+    .switcher {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+      display: flex; background: #111; padding: 10px 20px; gap: 8px;
+    }
+    .switch-btn {
+      padding: 6px 16px; border-radius: 99px; border: none; cursor: pointer;
+      font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;
+      background: #333; color: #fff; transition: all 0.15s;
+    }
+    .switch-btn.active { background: #fff; color: #111; }
+
+    .proto { display: none; min-height: 100vh; }
+    .proto.active { display: block; }
+
+    /* ===================== PROTO A — CRAYOLA BOARD ===================== */
+    #protoA {
+      background: #faf7f0;
+      padding-top: 52px;
+    }
+    .a-layout { display: flex; min-height: 100vh; }
+    .a-sidebar {
+      width: 220px; flex-shrink: 0;
+      background: #f0ebe0;
+      border-right: 2px solid #e0d8c8;
+      padding: 32px 20px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .a-logo {
+      font-size: 18px; font-weight: 900;
+      color: #111; margin-bottom: 28px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .a-logo-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #f97316;
+    }
+    .a-nav {
+      padding: 10px 14px; border-radius: 99px;
+      font-size: 12px; font-weight: 700; color: #666;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .a-nav.active { background: #111; color: #fff; }
+    .a-nav:hover:not(.active) { background: #e0d8c8; color: #111; }
+
+    .a-main { flex: 1; padding: 40px 36px; }
+    .a-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 36px;
+    }
+    .a-title { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.15em; color: #999; }
+    .a-toggle {
+      padding: 8px 18px; border-radius: 99px; border: 2px solid #111;
+      font-size: 11px; font-weight: 900; text-transform: uppercase;
+      background: transparent; cursor: pointer; letter-spacing: 0.08em;
+    }
+
+    /* Hero */
+    .a-hero { text-align: center; padding: 20px 0 36px; }
+    .a-hero-label { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: #999; margin-bottom: 8px; }
+    .a-hero-amount { font-size: 80px; font-weight: 900; color: #f97316; letter-spacing: -0.03em; line-height: 1; }
+    .a-hero-sub { font-size: 12px; font-weight: 700; color: #999; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.1em; }
+
+    /* KPI tiles Crayola */
+    .a-kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 24px; }
+    .a-kpi {
+      border-radius: 16px; padding: 20px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .a-kpi-label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.7; }
+    .a-kpi-val { font-size: 30px; font-weight: 900; }
+    .a-kpi-sub { font-size: 11px; font-weight: 700; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.06em; }
+    .a-kpi.orange { background: #f97316; color: #fff; }
+    .a-kpi.red { background: #ef4444; color: #fff; }
+    .a-kpi.green { background: #22c55e; color: #fff; }
+    .a-kpi.blue { background: #3b82f6; color: #fff; }
+
+    /* Grid */
+    .a-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .a-card {
+      background: #fff; border-radius: 16px;
+      border: 2px solid #e8e0d0; padding: 24px;
+    }
+    .a-card-title { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.15em; color: #999; margin-bottom: 18px; }
+
+    /* Calendar A */
+    .a-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
+    .a-cal-head { font-size: 9px; font-weight: 900; text-transform: uppercase; color: #bbb; text-align: center; padding-bottom: 6px; }
+    .a-day {
+      aspect-ratio: 1; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 900; cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .a-day:hover { transform: scale(1.12); }
+    .a-day.ok { background: #22c55e; color: #fff; }
+    .a-day.warn { background: #f97316; color: #fff; }
+    .a-day.bad { background: #ef4444; color: #fff; }
+    .a-day.future { background: #f0ebe0; color: #ccc; }
+    .a-day.today { outline: 2.5px solid #3b82f6; outline-offset: 2px; }
+    .a-day.empty { background: transparent; }
+
+    /* Bars A */
+    .a-bars { display: flex; align-items: flex-end; gap: 10px; height: 100px; }
+    .a-bar-g { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .a-bar { width: 100%; border-radius: 6px 6px 0 0; }
+    .a-bar-l { font-size: 9px; font-weight: 900; text-transform: uppercase; color: #bbb; }
+
+    /* TX A */
+    .a-tx-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0ebe0; }
+    .a-tx-row:last-child { border: none; }
+    .a-tx-desc { font-size: 13px; font-weight: 700; color: #111; }
+    .a-tx-date { font-size: 10px; font-weight: 700; color: #bbb; font-family: 'Space Mono', monospace; }
+    .a-tx-amt { font-size: 14px; font-weight: 900; color: #ef4444; font-family: 'Space Mono', monospace; }
+
+    /* ===================== PROTO B — CHALKBOARD ===================== */
+    #protoB {
+      background: #1e2820;
+      padding-top: 52px;
+      color: #f5f0e8;
+    }
+    .b-layout { display: flex; min-height: 100vh; }
+    .b-sidebar {
+      width: 220px; flex-shrink: 0;
+      background: #161e18;
+      padding: 32px 20px;
+      display: flex; flex-direction: column; gap: 6px;
+      border-right: 1px solid rgba(255,255,255,0.05);
+    }
+    .b-logo {
+      font-family: 'Space Mono', monospace;
+      font-size: 14px; font-weight: 700;
+      color: #f5f0e8; margin-bottom: 28px;
+      letter-spacing: 0.05em;
+    }
+    .b-nav {
+      padding: 10px 14px; border-radius: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px; color: rgba(245,240,232,0.4);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .b-nav.active { background: #a3e635; color: #111; }
+    .b-nav:hover:not(.active) { color: #f5f0e8; background: rgba(255,255,255,0.05); }
+
+    .b-main { flex: 1; padding: 40px 36px; }
+    .b-header { display: flex; justify-content: space-between; margin-bottom: 36px; }
+    .b-title { font-family: 'Space Mono', monospace; font-size: 11px; color: rgba(245,240,232,0.4); letter-spacing: 0.1em; }
+    .b-toggle { padding: 7px 16px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: #f5f0e8; font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; }
+
+    .b-hero { text-align: center; padding: 24px 0 36px; }
+    .b-hero-label { font-family: 'Space Mono', monospace; font-size: 11px; color: rgba(245,240,232,0.4); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 10px; }
+    .b-hero-amount { font-size: 76px; font-weight: 900; color: #fb923c; letter-spacing: -0.02em; line-height: 1; text-shadow: 3px 3px 0 rgba(251,146,60,0.3); }
+    .b-hero-sub { font-family: 'Space Mono', monospace; font-size: 11px; color: rgba(245,240,232,0.4); margin-top: 10px; }
+
+    .b-kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 24px; }
+    .b-kpi {
+      border-radius: 8px; padding: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+    }
+    .b-kpi-label { font-family: 'Space Mono', monospace; font-size: 9px; color: rgba(245,240,232,0.4); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.1em; }
+    .b-kpi-val { font-size: 26px; font-weight: 900; }
+    .b-kpi-val.lime { color: #a3e635; }
+    .b-kpi-val.orange { color: #fb923c; }
+    .b-kpi-val.red { color: #f87171; }
+    .b-kpi-val.blue { color: #60a5fa; }
+    .b-kpi-sub { font-family: 'Space Mono', monospace; font-size: 9px; color: rgba(245,240,232,0.35); margin-top: 4px; }
+
+    .b-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .b-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 22px; }
+    .b-card-title { font-family: 'Space Mono', monospace; font-size: 9px; color: rgba(245,240,232,0.4); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 16px; }
+
+    .b-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; }
+    .b-cal-head { font-size: 8px; font-family: 'Space Mono', monospace; color: rgba(245,240,232,0.3); text-align: center; padding-bottom: 5px; }
+    .b-day {
+      aspect-ratio: 1; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .b-day:hover { transform: scale(1.15); }
+    .b-day.ok { background: #a3e635; color: #111; }
+    .b-day.warn { background: #fb923c; color: #fff; }
+    .b-day.bad { background: #f87171; color: #fff; }
+    .b-day.future { background: rgba(255,255,255,0.06); color: rgba(245,240,232,0.2); }
+    .b-day.today { outline: 2px solid #60a5fa; outline-offset: 2px; }
+    .b-day.empty { background: transparent; }
+
+    .b-bars { display: flex; align-items: flex-end; gap: 8px; height: 100px; }
+    .b-bar-g { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .b-bar { width: 100%; border-radius: 3px 3px 0 0; }
+    .b-bar-l { font-family: 'Space Mono', monospace; font-size: 8px; color: rgba(245,240,232,0.3); }
+
+    .b-tx-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .b-tx-row:last-child { border: none; }
+    .b-tx-desc { font-size: 13px; font-weight: 700; color: #f5f0e8; }
+    .b-tx-date { font-family: 'Space Mono', monospace; font-size: 9px; color: rgba(245,240,232,0.35); }
+    .b-tx-amt { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: #f87171; }
+
+    /* ===================== PROTO C — NOTEBOOK ===================== */
+    #protoC {
+      background: #fff;
+      padding-top: 52px;
+    }
+    .c-layout { display: flex; min-height: 100vh; }
+    .c-sidebar {
+      width: 220px; flex-shrink: 0;
+      padding: 32px 20px;
+      border-right: 3px solid #111;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .c-logo { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 900; color: #111; margin-bottom: 28px; }
+    .c-nav {
+      padding: 10px 12px;
+      font-size: 13px; font-weight: 700; color: #999;
+      cursor: pointer; transition: all 0.15s;
+      border-left: 3px solid transparent;
+      margin-left: -12px; padding-left: 12px;
+    }
+    .c-nav.active { border-left-color: #f97316; color: #111; }
+    .c-nav:hover:not(.active) { color: #111; }
+
+    .c-main { flex: 1; padding: 40px 40px; }
+    .c-header { display: flex; justify-content: space-between; margin-bottom: 40px; }
+    .c-title { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: #ccc; }
+    .c-toggle { padding: 7px 16px; border-radius: 99px; border: 2px solid #111; font-size: 11px; font-weight: 900; text-transform: uppercase; background: transparent; cursor: pointer; }
+
+    /* Hero C — editorial */
+    .c-hero { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 3px solid #111; }
+    .c-hero-label { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.18em; color: #999; writing-mode: vertical-rl; transform: rotate(180deg); margin-bottom: 4px; }
+    .c-hero-amount { font-family: 'Playfair Display', serif; font-size: 96px; font-weight: 900; line-height: 0.9; color: #111; position: relative; }
+    .c-hero-amount span {
+      position: absolute; bottom: 0; right: -20px;
+      width: 100%; height: 12px; background: #f97316; z-index: -1;
+      transform: translateY(-8px);
+    }
+    .c-hero-right { margin-left: auto; text-align: right; }
+    .c-hero-badge {
+      display: inline-block; background: #ef4444; color: #fff;
+      padding: 6px 14px; border-radius: 99px;
+      font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+    .c-hero-sub { font-size: 12px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* KPI C */
+    .c-kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; margin-bottom: 40px; border-top: 2px solid #111; border-left: 2px solid #111; }
+    .c-kpi {
+      padding: 20px; border-right: 2px solid #111; border-bottom: 2px solid #111;
+      position: relative;
+    }
+    .c-kpi-accent { position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+    .c-kpi-label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; color: #999; margin-bottom: 8px; margin-top: 8px; }
+    .c-kpi-val { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 900; color: #111; }
+    .c-kpi-sub { font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; margin-top: 4px; }
+
+    .c-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-top: 2px solid #111; border-left: 2px solid #111; }
+    .c-card { padding: 24px; border-right: 2px solid #111; border-bottom: 2px solid #111; }
+    .c-card-title { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.16em; color: #999; margin-bottom: 18px; }
+
+    /* Calendar C */
+    .c-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+    .c-cal-head { font-size: 9px; font-weight: 900; text-transform: uppercase; color: #bbb; text-align: center; padding-bottom: 6px; }
+    .c-day {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 900; cursor: pointer; border-radius: 4px;
+      transition: transform 0.1s;
+    }
+    .c-day:hover { transform: scale(1.1); }
+    .c-day.ok { background: #22c55e; color: #fff; }
+    .c-day.warn { background: #f97316; color: #fff; }
+    .c-day.bad { background: #ef4444; color: #fff; }
+    .c-day.future { background: #f5f5f5; color: #ddd; }
+    .c-day.today { outline: 2.5px solid #111; outline-offset: 2px; }
+    .c-day.empty { background: transparent; }
+
+    .c-bars { display: flex; align-items: flex-end; gap: 8px; height: 100px; }
+    .c-bar-g { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .c-bar { width: 100%; border-radius: 3px 3px 0 0; }
+    .c-bar-l { font-size: 9px; font-weight: 900; color: #bbb; }
+
+    .c-tx-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+    .c-tx-row:last-child { border: none; }
+    .c-tx-desc { font-size: 13px; font-weight: 700; color: #111; }
+    .c-tx-date { font-size: 10px; font-weight: 700; color: #bbb; font-family: 'Space Mono', monospace; }
+    .c-tx-amt { font-size: 14px; font-weight: 900; color: #ef4444; font-family: 'Space Mono', monospace; }
+    .c-badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 9px; font-weight: 900; text-transform: uppercase; }
+    .c-badge.bad { background: #ef4444; color: #fff; }
+    .c-badge.ok { background: #22c55e; color: #fff; }
+  </style>
+</head>
+<body>
+
+<!-- SWITCHER -->
+<div class="switcher">
+  <button class="switch-btn active" onclick="show('A')">A — Crayola Board</button>
+  <button class="switch-btn" onclick="show('B')">B — Chalkboard</button>
+  <button class="switch-btn" onclick="show('C')">C — Notebook Editorial</button>
+</div>
+
+<!-- ===================== PROTO A ===================== -->
+<div id="protoA" class="proto active">
+  <div class="a-layout">
+    <aside class="a-sidebar">
+      <div class="a-logo"><div class="a-logo-dot"></div>Budget</div>
+      <div class="a-nav active">◈ Dashboard</div>
+      <div class="a-nav">◉ Historique</div>
+      <div class="a-nav">◎ Calendrier</div>
+    </aside>
+    <main class="a-main">
+      <div class="a-header">
+        <div class="a-title">Septembre 2026</div>
+        <button class="a-toggle">☀ / ◆</button>
+      </div>
+      <div class="a-hero">
+        <div class="a-hero-label">Solde restant</div>
+        <div class="a-hero-amount">137.30€</div>
+        <div class="a-hero-sub">248€ départ · 20.67€/jour</div>
+      </div>
+      <div class="a-kpi-grid">
+        <div class="a-kpi red"><div class="a-kpi-label">Aujourd'hui</div><div class="a-kpi-val">0€</div><div class="a-kpi-sub">Bloqué</div></div>
+        <div class="a-kpi orange"><div class="a-kpi-label">Dette</div><div class="a-kpi-val">3.9j</div><div class="a-kpi-sub">Jours</div></div>
+        <div class="a-kpi green"><div class="a-kpi-label">Reprise</div><div class="a-kpi-val">23/09</div><div class="a-kpi-sub">Retour normal</div></div>
+        <div class="a-kpi blue"><div class="a-kpi-label">Dépensé</div><div class="a-kpi-val">110€</div><div class="a-kpi-sub">Aujourd'hui</div></div>
+      </div>
+      <div class="a-grid2">
+        <div class="a-card">
+          <div class="a-card-title">Calendrier</div>
+          <div class="a-cal-grid">
+            <div class="a-cal-head">L</div><div class="a-cal-head">M</div><div class="a-cal-head">M</div><div class="a-cal-head">J</div><div class="a-cal-head">V</div><div class="a-cal-head">S</div><div class="a-cal-head">D</div>
+            <div class="a-day future">1</div><div class="a-day future">2</div><div class="a-day future">3</div><div class="a-day future">4</div><div class="a-day future">5</div><div class="a-day future">6</div><div class="a-day future">7</div>
+            <div class="a-day future">8</div><div class="a-day future">9</div><div class="a-day future">10</div><div class="a-day future">11</div><div class="a-day future">12</div><div class="a-day future">13</div><div class="a-day future">14</div>
+            <div class="a-day future">15</div><div class="a-day future">16</div><div class="a-day future">17</div><div class="a-day future">18</div><div class="a-day bad today">19</div><div class="a-day bad">20</div><div class="a-day bad">21</div>
+            <div class="a-day bad">22</div><div class="a-day warn">23</div><div class="a-day ok">24</div><div class="a-day ok">25</div><div class="a-day ok">26</div><div class="a-day ok">27</div><div class="a-day ok">28</div>
+            <div class="a-day ok">29</div><div class="a-day ok">30</div><div class="a-day empty"></div><div class="a-day empty"></div><div class="a-day empty"></div><div class="a-day empty"></div><div class="a-day empty"></div>
+          </div>
+        </div>
+        <div class="a-card">
+          <div class="a-card-title">Dépenses par jour</div>
+          <div class="a-bars">
+            <div class="a-bar-g"><div class="a-bar" style="height:6px;background:#e0d8c8"></div><div class="a-bar-l">15</div></div>
+            <div class="a-bar-g"><div class="a-bar" style="height:6px;background:#e0d8c8"></div><div class="a-bar-l">16</div></div>
+            <div class="a-bar-g"><div class="a-bar" style="height:6px;background:#e0d8c8"></div><div class="a-bar-l">17</div></div>
+            <div class="a-bar-g"><div class="a-bar" style="height:6px;background:#e0d8c8"></div><div class="a-bar-l">18</div></div>
+            <div class="a-bar-g"><div class="a-bar" style="height:100px;background:#ef4444;border-radius:6px 6px 0 0"></div><div class="a-bar-l">19</div></div>
+            <div class="a-bar-g"><div class="a-bar" style="height:6px;background:#e0d8c8"></div><div class="a-bar-l">20</div></div>
+            <div class="a-bar-g"><div class="a-bar" style="height:6px;background:#e0d8c8"></div><div class="a-bar-l">21</div></div>
+          </div>
+        </div>
+      </div>
+      <br>
+      <div class="a-card">
+        <div class="a-card-title">Historique</div>
+        <div>
+          <div class="a-tx-row"><div class="a-tx-left"><div class="a-tx-desc">Courses</div><div class="a-tx-date">19-09-2026</div></div><div class="a-tx-amt">-45.12€</div></div>
+          <div class="a-tx-row"><div class="a-tx-left"><div class="a-tx-desc">Boucherie</div><div class="a-tx-date">19-09-2026</div></div><div class="a-tx-amt">-33.00€</div></div>
+          <div class="a-tx-row"><div class="a-tx-left"><div class="a-tx-desc">Pharmacie</div><div class="a-tx-date">19-09-2026</div></div><div class="a-tx-amt">-13.89€</div></div>
+          <div class="a-tx-row"><div class="a-tx-left"><div class="a-tx-desc">Sagali</div><div class="a-tx-date">19-09-2026</div></div><div class="a-tx-amt">-9.90€</div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ===================== PROTO B ===================== -->
+<div id="protoB" class="proto">
+  <div class="b-layout">
+    <aside class="b-sidebar">
+      <div class="b-logo">$ budget_ai</div>
+      <div class="b-nav active">dashboard</div>
+      <div class="b-nav">historique</div>
+      <div class="b-nav">calendrier</div>
+    </aside>
+    <main class="b-main">
+      <div class="b-header">
+        <div class="b-title">septembre_2026</div>
+        <button class="b-toggle">toggle theme</button>
+      </div>
+      <div class="b-hero">
+        <div class="b-hero-label">// solde_restant</div>
+        <div class="b-hero-amount">137.30€</div>
+        <div class="b-hero-sub">init: 248€ — rate: 20.67€/day</div>
+      </div>
+      <div class="b-kpi-grid">
+        <div class="b-kpi"><div class="b-kpi-label">budget_today</div><div class="b-kpi-val red">0€</div><div class="b-kpi-sub">blocked</div></div>
+        <div class="b-kpi"><div class="b-kpi-label">debt_days</div><div class="b-kpi-val orange">3.9j</div><div class="b-kpi-sub">to repay</div></div>
+        <div class="b-kpi"><div class="b-kpi-label">resume_date</div><div class="b-kpi-val lime">23/09</div><div class="b-kpi-sub">normal</div></div>
+        <div class="b-kpi"><div class="b-kpi-label">spent_today</div><div class="b-kpi-val blue">110€</div><div class="b-kpi-sub">total</div></div>
+      </div>
+      <div class="b-grid2">
+        <div class="b-card">
+          <div class="b-card-title">// calendrier</div>
+          <div class="b-cal-grid">
+            <div class="b-cal-head">L</div><div class="b-cal-head">M</div><div class="b-cal-head">M</div><div class="b-cal-head">J</div><div class="b-cal-head">V</div><div class="b-cal-head">S</div><div class="b-cal-head">D</div>
+            <div class="b-day future">1</div><div class="b-day future">2</div><div class="b-day future">3</div><div class="b-day future">4</div><div class="b-day future">5</div><div class="b-day future">6</div><div class="b-day future">7</div>
+            <div class="b-day future">8</div><div class="b-day future">9</div><div class="b-day future">10</div><div class="b-day future">11</div><div class="b-day future">12</div><div class="b-day future">13</div><div class="b-day future">14</div>
+            <div class="b-day future">15</div><div class="b-day future">16</div><div class="b-day future">17</div><div class="b-day future">18</div><div class="b-day bad today">19</div><div class="b-day bad">20</div><div class="b-day bad">21</div>
+            <div class="b-day bad">22</div><div class="b-day warn">23</div><div class="b-day ok">24</div><div class="b-day ok">25</div><div class="b-day ok">26</div><div class="b-day ok">27</div><div class="b-day ok">28</div>
+            <div class="b-day ok">29</div><div class="b-day ok">30</div><div class="b-day empty"></div><div class="b-day empty"></div><div class="b-day empty"></div><div class="b-day empty"></div><div class="b-day empty"></div>
+          </div>
+        </div>
+        <div class="b-card">
+          <div class="b-card-title">// dépenses</div>
+          <div class="b-bars">
+            <div class="b-bar-g"><div class="b-bar" style="height:4px;background:rgba(255,255,255,0.1)"></div><div class="b-bar-l">15</div></div>
+            <div class="b-bar-g"><div class="b-bar" style="height:4px;background:rgba(255,255,255,0.1)"></div><div class="b-bar-l">16</div></div>
+            <div class="b-bar-g"><div class="b-bar" style="height:4px;background:rgba(255,255,255,0.1)"></div><div class="b-bar-l">17</div></div>
+            <div class="b-bar-g"><div class="b-bar" style="height:4px;background:rgba(255,255,255,0.1)"></div><div class="b-bar-l">18</div></div>
+            <div class="b-bar-g"><div class="b-bar" style="height:100px;background:#f87171;border-radius:3px 3px 0 0"></div><div class="b-bar-l">19</div></div>
+            <div class="b-bar-g"><div class="b-bar" style="height:4px;background:rgba(255,255,255,0.1)"></div><div class="b-bar-l">20</div></div>
+            <div class="b-bar-g"><div class="b-bar" style="height:4px;background:rgba(255,255,255,0.1)"></div><div class="b-bar-l">21</div></div>
+          </div>
+        </div>
+      </div>
+      <br>
+      <div class="b-card">
+        <div class="b-card-title">// transactions</div>
+        <div>
+          <div class="b-tx-row"><div><div class="b-tx-desc">Courses</div><div class="b-tx-date">2026-09-19</div></div><div class="b-tx-amt">-45.12€</div></div>
+          <div class="b-tx-row"><div><div class="b-tx-desc">Boucherie</div><div class="b-tx-date">2026-09-19</div></div><div class="b-tx-amt">-33.00€</div></div>
+          <div class="b-tx-row"><div><div class="b-tx-desc">Pharmacie</div><div class="b-tx-date">2026-09-19</div></div><div class="b-tx-amt">-13.89€</div></div>
+          <div class="b-tx-row"><div><div class="b-tx-desc">Sagali</div><div class="b-tx-date">2026-09-19</div></div><div class="b-tx-amt">-9.90€</div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ===================== PROTO C ===================== -->
+<div id="protoC" class="proto">
+  <div class="c-layout">
+    <aside class="c-sidebar">
+      <div class="c-logo">Budget.</div>
+      <div class="c-nav active">Dashboard</div>
+      <div class="c-nav">Historique</div>
+      <div class="c-nav">Calendrier</div>
+    </aside>
+    <main class="c-main">
+      <div class="c-header">
+        <div class="c-title">Septembre 2026</div>
+        <button class="c-toggle">Light / Dark</button>
+      </div>
+      <div class="c-hero">
+        <div class="c-hero-label">Solde restant</div>
+        <div class="c-hero-amount">137<span style="background:#f97316;position:static;display:inline;font-size:48px;vertical-align:super;color:#f97316;">.30€</span></div>
+        <div class="c-hero-right">
+          <div class="c-hero-badge">⚠ Bloqué</div>
+          <div class="c-hero-sub">248€ départ · 20.67€/jour</div>
+        </div>
+      </div>
+      <div class="c-kpi-grid">
+        <div class="c-kpi"><div class="c-kpi-accent" style="background:#ef4444"></div><div class="c-kpi-label">Aujourd'hui</div><div class="c-kpi-val">0€</div><div class="c-kpi-sub">Bloqué</div></div>
+        <div class="c-kpi"><div class="c-kpi-accent" style="background:#f97316"></div><div class="c-kpi-label">Dette</div><div class="c-kpi-val">3.9 j</div><div class="c-kpi-sub">À rendre</div></div>
+        <div class="c-kpi"><div class="c-kpi-accent" style="background:#22c55e"></div><div class="c-kpi-label">Reprise</div><div class="c-kpi-val">23/09</div><div class="c-kpi-sub">Normal</div></div>
+        <div class="c-kpi"><div class="c-kpi-accent" style="background:#3b82f6"></div><div class="c-kpi-label">Dépensé</div><div class="c-kpi-val">110€</div><div class="c-kpi-sub">Aujourd'hui</div></div>
+      </div>
+      <div class="c-grid2">
+        <div class="c-card">
+          <div class="c-card-title">Calendrier</div>
+          <div class="c-cal-grid">
+            <div class="c-cal-head">L</div><div class="c-cal-head">M</div><div class="c-cal-head">M</div><div class="c-cal-head">J</div><div class="c-cal-head">V</div><div class="c-cal-head">S</div><div class="c-cal-head">D</div>
+            <div class="c-day future">1</div><div class="c-day future">2</div><div class="c-day future">3</div><div class="c-day future">4</div><div class="c-day future">5</div><div class="c-day future">6</div><div class="c-day future">7</div>
+            <div class="c-day future">8</div><div class="c-day future">9</div><div class="c-day future">10</div><div class="c-day future">11</div><div class="c-day future">12</div><div class="c-day future">13</div><div class="c-day future">14</div>
+            <div class="c-day future">15</div><div class="c-day future">16</div><div class="c-day future">17</div><div class="c-day future">18</div><div class="c-day bad today">19</div><div class="c-day bad">20</div><div class="c-day bad">21</div>
+            <div class="c-day bad">22</div><div class="c-day warn">23</div><div class="c-day ok">24</div><div class="c-day ok">25</div><div class="c-day ok">26</div><div class="c-day ok">27</div><div class="c-day ok">28</div>
+            <div class="c-day ok">29</div><div class="c-day ok">30</div><div class="c-day empty"></div><div class="c-day empty"></div><div class="c-day empty"></div><div class="c-day empty"></div><div class="c-day empty"></div>
+          </div>
+        </div>
+        <div class="c-card">
+          <div class="c-card-title">Dépenses</div>
+          <div class="c-bars">
+            <div class="c-bar-g"><div class="c-bar" style="height:4px;background:#f0f0f0"></div><div class="c-bar-l">15</div></div>
+            <div class="c-bar-g"><div class="c-bar" style="height:4px;background:#f0f0f0"></div><div class="c-bar-l">16</div></div>
+            <div class="c-bar-g"><div class="c-bar" style="height:4px;background:#f0f0f0"></div><div class="c-bar-l">17</div></div>
+            <div class="c-bar-g"><div class="c-bar" style="height:4px;background:#f0f0f0"></div><div class="c-bar-l">18</div></div>
+            <div class="c-bar-g"><div class="c-bar" style="height:100px;background:#ef4444;border-radius:3px 3px 0 0"></div><div class="c-bar-l">19</div></div>
+            <div class="c-bar-g"><div class="c-bar" style="height:4px;background:#f0f0f0"></div><div class="c-bar-l">20</div></div>
+            <div class="c-bar-g"><div class="c-bar" style="height:4px;background:#f0f0f0"></div><div class="c-bar-l">21</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="c-card" style="border-right:2px solid #111;border-left:0;margin-top:0;">
+        <div class="c-card-title">Historique</div>
+        <div>
+          <div class="c-tx-row"><div><div class="c-tx-desc">Courses</div><div class="c-tx-date">2026-09-19</div></div><div class="c-tx-amt">-45.12€</div></div>
+          <div class="c-tx-row"><div><div class="c-tx-desc">Boucherie</div><div class="c-tx-date">2026-09-19</div></div><div class="c-tx-amt">-33.00€</div></div>
+          <div class="c-tx-row"><div><div class="c-tx-desc">Pharmacie</div><div class="c-tx-date">2026-09-19</div></div><div class="c-tx-amt">-13.89€</div></div>
+          <div class="c-tx-row"><div><div class="c-tx-desc">Sagali</div><div class="c-tx-date">2026-09-19</div></div><div class="c-tx-amt">-9.90€</div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.proto').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.switch-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('proto'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
