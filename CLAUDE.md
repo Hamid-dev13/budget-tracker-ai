@@ -27,6 +27,10 @@ via MCP et répond en jours de dette. Un dashboard Next.js visualise les donnée
   (`user: "${APP_UID:-1000}:${APP_GID:-1000}"`, renseigné dans `.env`). L'image déclare
   l'uid 1001 : sans cet override, **toute écriture échoue en EACCES**. Ça ne se voyait pas
   tant que le dashboard était en lecture seule.
+- Le port n'est **jamais** publié sur `0.0.0.0` : l'API accepte des écritures sans
+  authentification et `POST /api/budget` écrase tout le budget. `BIND_ADDR` vaut
+  `127.0.0.1` par défaut, et l'IP Tailscale sur le lab (dont le firewall est inactif
+  et qui a une IPv6 publique).
 - Pas de base de données — JSON suffit pour ce projet
 
 ## Logique métier — la cagnotte cumulée
