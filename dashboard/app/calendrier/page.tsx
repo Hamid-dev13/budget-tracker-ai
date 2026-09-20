@@ -12,10 +12,10 @@ export default async function CalendrierPage() {
 
   return (
     <div>
-      <h1 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-6">Calendrier</h1>
-      <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl border-2 border-[#e8e0d0] dark:border-[#2a2a2a] p-6">
-        <CalendarGrid jours={vue.jours} dateDebut={date_debut} today={today} />
-      </div>
+      <h1 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4 sm:mb-6">Calendrier</h1>
+      {/* CalendarGrid porte déjà sa carte : un wrapper à padding la doublerait,
+          et à 375 px chaque pixel de marge se prend sur les 7 colonnes. */}
+      <CalendarGrid jours={vue.jours} dateDebut={date_debut} today={today} />
     </div>
   )
 }

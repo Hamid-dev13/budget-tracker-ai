@@ -1,0 +1,93 @@
+import { describe, it, expect } from 'vitest'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import CalendarGrid from '@/components/Calendar'
+import { JourStat } from '@/lib/types'
+
+// Septembre 2026 : 30 jours, le 1er tombe un mardi.
+const DATE_DEBUT = '2026-09-01'
+const TODAY = '2026-09-19'
+
+// Le 19/09 est la journée de régression : 110,70 € sur un plafond de 20,67 €.
+const PLAFOND = 20.67
+
+// Reproduit la journée réelle : 110,70 € le 19/09 → 20 au 23 bloqués,
+// reprise le 24/09 avec 13,30 €.
+const jours: JourStat[] = Array.from({ length: 30 }, (_, i) => {
+  const jour = i + 1
+  const bloque = jour >= 20 && jour <= 23
+  const reprise = jour === 24
+  const budgetDuJour = bloque ? 0 : reprise ? 13.3 : PLAFOND
+  return {
+    date: `2026-09-${String(jour).padStart(2, '0')}`,
+    depense: jour === 19 ? 110.7 : 0,
+    cagnotte: 0,
+    budgetDuJour,
+    status: jour === 19 || bloque ? 'danger' : reprise ? 'warn' : jour < 19 ? 'ok' : 'future',
+  }
+})
+
+// Pas de JSX : le tsconfig de Next est en `jsx: preserve`, la config vitest reste intacte.
+const html = () =>
+  renderToStaticMarkup(
+    createElement(CalendarGrid, { jours, dateDebut: DATE_DEBUT, today: TODAY }),
+  )
+
+describe('CalendarGrid — encombrement', () => {
+  it("n'utilise pas aspect-square : la hauteur d'une cellule suivrait la largeur de la colonne", () => {
+    expect(html()).not.toContain('aspect-square')
+  })
+
+  it('borne la hauteur des 30 cellules de jour', () => {
+    const cellules = html().match(/class="[^"]*\bh-\d+\b[^"]*\brounded-lg\b[^"]*"/g) ?? []
+    expect(cellules.length).toBe(30)
+  })
+
+  it('garde les 30 jours du mois et le marqueur du jour courant', () => {
+    const markup = html()
+    expect(markup).toContain('>30<')
+    expect(markup).toContain('>19<')
+    expect(markup).toContain('rounded-full')
+  })
+
+  it('affiche le montant dans la cellule, pas seulement en infobulle', () => {
+    expect(html()).toContain('110,70 €')
+  })
+
+  it('annonce 0,00 € sur les jours bloqués — le rouge seul ne les distingue pas du dépassement', () => {
+    const markup = html()
+    // 20, 21, 22 et 23 : quatre cases bloquées, chacune porte son 0,00 €.
+    // On compte dans les cases, pas dans les infobulles.
+    const zeros = markup.match(/>0,00 €<\/span>/g) ?? []
+    expect(zeros.length).toBe(4)
+  })
+
+  it('annonce le reliquat du jour de reprise et le plafond des jours normaux', () => {
+    const markup = html()
+    expect(markup).toContain('13,30 €')
+    expect(markup).toContain('20,67 €')
+  })
+
+  describe('petit écran', () => {
+    it('sert les deux formats de montant : court en dessous de sm, long au-dessus', () => {
+      const markup = html()
+      // Le format court remplace le long sur mobile, il ne s'y ajoute pas.
+      expect(markup).toContain('sm:hidden')
+      expect(markup).toContain('111 €')
+      expect(markup).toContain('110,70 €')
+    })
+
+    it('abrège les en-têtes de jours, « Lun » ne tient pas dans 45 px', () => {
+      const markup = html()
+      // Une initiale visible sous sm, le nom complet au-dessus.
+      expect(markup).toMatch(/>L<\/span>/)
+      expect(markup).toContain('>Lun<')
+    })
+
+    it('réduit la hauteur des cases et les espacements sous sm', () => {
+      const markup = html()
+      expect(markup).toContain('h-14 sm:h-16')
+      expect(markup).toContain('gap-0.5 sm:gap-1')
+    })
+  })
+})

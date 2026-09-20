@@ -162,6 +162,15 @@ ssh hamid@100.98.46.26 docker restart hermes
 Node n'est pas installé sur l'hôte du lab, mais le conteneur `hermes` embarque Node v26
 et monte `~/.hermes` sur `/opt/data` — d'où les chemins `/opt/data/...` dans `config.yaml`.
 
+## Workflow de contribution
+
+Rien ne part sans issue. Le suivi vit dans le [GitHub Project 5](https://github.com/users/Hamid-dev13/projects/5).
+
+Le cycle complet — lire le board, ouvrir l'issue, la passer `In Progress`, développer
+en TDD, commiter en référençant le numéro, fermer en `Done` — est décrit dans le skill
+`.claude/skills/issue-workflow/SKILL.md`. **À suivre pour toute feature, correction ou
+refacto**, même petite.
+
 ## Stratégie de test (TDD)
 
 ### Règle absolue

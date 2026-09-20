@@ -3,7 +3,7 @@
  * Aucune règle métier ici : elles vivent dans budget-logic, côté serveur.
  */
 import { describe, it, expect } from 'vitest'
-import { fmt, fmtDate, statusColor, pieDataDe, lineDataDe } from '../../lib/budget'
+import { fmt, fmtCourt, fmtDate, statusColor, pieDataDe, lineDataDe } from '../../lib/budget'
 import type { Depense, JourStat } from '../../lib/budget-logic'
 
 describe('fmt', () => {
@@ -11,6 +11,21 @@ describe('fmt', () => {
     expect(fmt(20.6666)).toBe('20,67 €')
     expect(fmt(0)).toBe('0,00 €')
     expect(fmt(-69.37)).toBe('-69,37 €')
+  })
+})
+
+describe('fmtCourt', () => {
+  it("arrondit à l'euro : sur mobile une colonne fait ~45 px", () => {
+    expect(fmtCourt(110.7)).toBe('111 €')
+    expect(fmtCourt(20.6666)).toBe('21 €')
+    expect(fmtCourt(13.3)).toBe('13 €')
+    expect(fmtCourt(0)).toBe('0 €')
+  })
+
+  it('reste plus court que le format long, qui ne tient pas dans la case', () => {
+    for (const n of [0, 13.3, 20.6666, 110.7]) {
+      expect(fmtCourt(n).length).toBeLessThan(fmt(n).length)
+    }
   })
 })
 
@@ -56,9 +71,9 @@ describe('pieDataDe', () => {
 
 describe('lineDataDe', () => {
   const jours: JourStat[] = [
-    { date: '2026-09-19', depense: 110.7, cagnotte: -90.03, status: 'danger' },
-    { date: '2026-09-20', depense: 0, cagnotte: -69.37, status: 'ok' },
-    { date: '2026-09-21', depense: 0, cagnotte: -48.7, status: 'future' },
+    { date: '2026-09-19', depense: 110.7, cagnotte: -90.03, budgetDuJour: 0, status: 'danger' },
+    { date: '2026-09-20', depense: 0, cagnotte: -69.37, budgetDuJour: 0, status: 'danger' },
+    { date: '2026-09-21', depense: 0, cagnotte: -48.7, budgetDuJour: 0, status: 'danger' },
   ]
 
   it('suit le solde restant jour après jour', () => {

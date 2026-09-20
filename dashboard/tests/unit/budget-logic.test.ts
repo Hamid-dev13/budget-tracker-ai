@@ -12,6 +12,7 @@ import {
   detteJours,
   joursBloques,
   budgetJourReprise,
+  statusDepenseDuJour,
   computeBudget,
   type BudgetData,
 } from '../../lib/budget-logic'
@@ -167,6 +168,37 @@ describe('budgetJourReprise', () => {
   })
 })
 
+describe('statusDepenseDuJour', () => {
+  const PLAFOND = 20.666666666666668
+
+  it("ne verdit pas un jour bloqué où l'on n'a rien dépensé", () => {
+    // Le piège : 0 € dépensé ressemble à « tout va bien », alors qu'on n'avait
+    // de toute façon pas le droit de dépenser. Vert dirait le contraire de la
+    // carte « budget aujourd'hui » qui affiche 0,00 € en rouge.
+    expect(statusDepenseDuJour(0, 0)).not.toBe('ok')
+  })
+
+  it('passe au rouge dès qu\'on dépense un jour bloqué', () => {
+    expect(statusDepenseDuJour(5, 0)).toBe('danger')
+  })
+
+  it('reste vert tant qu\'on est sous le budget du jour', () => {
+    expect(statusDepenseDuJour(0, PLAFOND)).toBe('ok')
+    expect(statusDepenseDuJour(20, PLAFOND)).toBe('ok')
+  })
+
+  it('se compare au budget du jour, pas au plafond théorique', () => {
+    // Jour de reprise : 13,30 € disponibles alors que le plafond vaut 20,67 €.
+    // Dépenser 18 € tient sous le plafond mais crève le budget du jour.
+    expect(statusDepenseDuJour(18, 13.3)).not.toBe('ok')
+  })
+
+  it('gradue le dépassement comme les journées du calendrier', () => {
+    expect(statusDepenseDuJour(25, PLAFOND)).toBe('warn')
+    expect(statusDepenseDuJour(110.7, PLAFOND)).toBe('danger')
+  })
+})
+
 describe('computeBudget', () => {
   it('rend la vue complète au 20/09 (cas réel)', () => {
     const vue = computeBudget(REEL, '2026-09-20')
@@ -206,8 +238,31 @@ describe('computeBudget', () => {
 
     expect(vue.jours[0].depense).toBeCloseTo(110.7, 2)
     expect(vue.jours[0].status).toBe('danger')
-    expect(vue.jours[1].status).toBe('ok') // aujourd'hui, rien dépensé
-    expect(vue.jours[2].status).toBe('future')
+    // Aujourd'hui : rien dépensé, mais la cagnotte est négative → jour bloqué.
+    // Un jour bloqué n'est pas un jour « ok » : on n'a le droit de rien dépenser.
+    expect(vue.jours[1].status).toBe('danger')
+    // 21/09 est encore dans la fenêtre de blocage : rouge, pas gris.
+    expect(vue.jours[2].status).toBe('danger')
+  })
+
+  it('colore la fenêtre de blocage puis le jour de reprise', () => {
+    // 110,70 € le 19/09 sur un plafond de 20,67 € → 4 jours bloqués,
+    // reprise le 24/09 avec 13,30 €.
+    const vue = computeBudget(REEL, '2026-09-20')
+    const statut = (date: string) => vue.jours.find(j => j.date === date)!.status
+
+    // Les 4 jours bloqués, aujourd'hui inclus.
+    expect(statut('2026-09-20')).toBe('danger')
+    expect(statut('2026-09-21')).toBe('danger')
+    expect(statut('2026-09-22')).toBe('danger')
+    expect(statut('2026-09-23')).toBe('danger')
+
+    // Le jour de reprise : budget partiel, ni bloqué ni plein.
+    expect(statut('2026-09-24')).toBe('warn')
+    expect(vue.jours.find(j => j.date === '2026-09-24')!.cagnotte).toBeCloseTo(13.3, 2)
+
+    // Au-delà, la cagnotte couvre un plafond entier : journée normale à venir.
+    expect(statut('2026-09-25')).toBe('future')
   })
 
   it('classe un jour en warn entre 100 % et 150 % du plafond', () => {
@@ -223,6 +278,30 @@ describe('computeBudget', () => {
     // Le jour courant est un paramètre : deux appels identiques donnent le même résultat.
     expect(computeBudget(REEL, '2026-09-22')).toEqual(computeBudget(REEL, '2026-09-22'))
     expect(computeBudget(REEL, '2026-09-22').joursBloques).toBe(2)
+  })
+
+  it('donne à chaque jour le montant à afficher dans sa case', () => {
+    const vue = computeBudget(REEL, '2026-09-20')
+    const jour = (date: string) => vue.jours.find(j => j.date === date)!
+
+    // Jours bloqués : rien à dépenser, et c'est ce que la case doit dire.
+    expect(jour('2026-09-21').budgetDuJour).toBe(0)
+    expect(jour('2026-09-23').budgetDuJour).toBe(0)
+
+    // Jour de reprise : le reliquat, pas un plafond plein.
+    expect(jour('2026-09-24').budgetDuJour).toBeCloseTo(13.3, 2)
+
+    // Au-delà, le rythme nominal reprend : le plafond, pas la cagnotte cumulée.
+    expect(jour('2026-09-25').budgetDuJour).toBeCloseTo(20.67, 2)
+    expect(jour('2026-09-30').budgetDuJour).toBeCloseTo(20.67, 2)
+  })
+
+  it('expose le statut de la dépense du jour, pour que le dashboard ne le recalcule pas', () => {
+    // 20/09 : bloqué (budget 0) et rien dépensé → surtout pas 'ok'.
+    expect(computeBudget(REEL, '2026-09-20').statusDepenseAujourdhui).toBe('future')
+
+    // 19/09 : 110,70 € dépensés sur un budget de 20,67 € → rouge.
+    expect(computeBudget(REEL, '2026-09-19').statusDepenseAujourdhui).toBe('danger')
   })
 
   it('reste cohérent le dernier jour de la période', () => {
