@@ -78,3 +78,45 @@ docker compose up --build    # lance tout
 docker compose logs mcp      # logs du MCP server
 docker compose logs dashboard # logs du dashboard
 ```
+
+## Stratégie de test (TDD)
+
+### Règle absolue
+Pas de code de production sans test qui échoue en premier. Cycle RED → GREEN → REFACTOR.
+
+### 4 layers de test
+
+| Layer | Outil | Ce qu'on teste |
+|---|---|---|
+| Unitaire | `pytest` | Logique dette en jours, calculs |
+| Intégration | `pytest` + JSON réel | MCP tools end-to-end, lecture/écriture |
+| API | `curl` | Routes dashboard `/api/budget` |
+| E2E | `browser_exec` (Playwright) | UI, calendrier, couleurs |
+
+### Structure des tests
+
+```
+tests/
+├── unit/
+│   └── test_budget_logic.py    # calculs purs
+├── integration/
+│   └── test_mcp_tools.py       # outils MCP avec JSON réel
+├── api/
+│   └── test_dashboard_api.sh   # curl sur les routes
+└── e2e/
+    └── test_dashboard_ui.py    # Playwright via browser_exec
+```
+
+### Environnements
+
+- **Preprod** : `docker compose -f docker-compose.preprod.yml up` — port 3001, données de test
+- **Prod** : `docker compose up` — port 3000, données réelles
+
+La preprod a son propre `data/budget.test.json` — jamais toucher aux données prod pour tester.
+
+### Smoke tests post-deploy
+
+```bash
+curl -f http://localhost:3000/api/budget | jq '.solde_restant'
+```
+Si ça échoue → rollback immédiat.

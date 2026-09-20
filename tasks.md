@@ -28,3 +28,17 @@
 - [x] architecture.md
 - [x] plan.md
 - [x] CLAUDE.md
+
+## Tests à créer (TDD — avant le code)
+
+- [ ] TEST-01 · `test_calcul_dette_jours` — logique dette en jours
+- [ ] TEST-02 · `test_add_expense` — enregistrement dépense
+- [ ] TEST-03 · `test_get_status` — statut budget + jours bloqués
+- [ ] TEST-04 · `test_api_budget_route` — curl sur `/api/budget`
+- [ ] TEST-05 · `test_dashboard_ui` — Playwright calendrier + couleurs
+
+## Environnements
+
+- [ ] ENV-01 · Créer `docker-compose.preprod.yml` (port 3001, données test)
+- [ ] ENV-02 · Créer `data/budget.test.json`
+- [ ] ENV-03 · Script smoke test post-deploy
