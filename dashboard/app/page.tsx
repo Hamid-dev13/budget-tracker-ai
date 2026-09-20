@@ -94,10 +94,14 @@ export default function Dashboard() {
           color={vue.dateReprise ? 'warn' : 'ok'}
         />
         <KPICard
-          title="Dépense aujourd'hui"
+          title="Dépensé aujourd'hui"
           value={fmt(depenseAujourdhui)}
-          subtitle={`plafond : ${fmt(vue.plafondJour)}`}
-          color={depenseAujourdhui > vue.plafondJour * 1.5 ? 'danger' : depenseAujourdhui > vue.plafondJour ? 'warn' : 'ok'}
+          subtitle={
+            vue.budgetAujourdhui > 0
+              ? `sur ${fmt(vue.budgetAujourdhui)} disponibles`
+              : 'jour bloqué — rien à dépenser'
+          }
+          color={vue.statusDepenseAujourdhui}
         />
       </div>
 

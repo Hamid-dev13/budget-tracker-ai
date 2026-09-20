@@ -44,6 +44,8 @@ export interface VueBudget {
   dateReprise: string | null
   budgetJourReprise: number
   status: Status
+  /** Statut de la dépense du jour, jugée sur le budget disponible. */
+  statusDepenseAujourdhui: Status
   jours: JourStat[]
 }
 
@@ -114,10 +116,36 @@ export function budgetJourReprise(dette: number, plafond: number): number {
   return fraction === 0 ? plafond : (1 - fraction) * plafond
 }
 
-/** Statut d'une journée selon son dépassement du plafond. */
+/**
+ * Statut d'une journée à venir — ou d'aujourd'hui : ce qui compte n'est pas ce
+ * qu'on a dépensé mais ce qu'on a le droit de dépenser, c.-à-d. la cagnotte
+ * cumulée à cette date. Un jour bloqué n'est pas un jour « ok ».
+ */
+export function statusJourAVenir(cagnotte: number, plafond: number): Status {
+  if (cagnotte <= 0) return 'danger'      // bloqué : rien à dépenser
+  if (cagnotte < plafond) return 'warn'   // reprise : budget partiel
+  return 'future'                         // journée pleine à venir
+}
+
+/** Statut d'une journée déjà vécue, selon son dépassement du plafond. */
 export function statusJour(depense: number, plafond: number): Status {
   if (depense === 0) return 'ok'
   const ratio = depense / plafond
+  if (ratio <= 1) return 'ok'
+  if (ratio <= 1.5) return 'warn'
+  return 'danger'
+}
+
+/**
+ * Statut de ce qu'on a dépensé aujourd'hui, jugé sur le budget réellement
+ * disponible — pas sur le plafond théorique. Un jour bloqué, le budget vaut 0 :
+ * n'avoir rien dépensé n'est pas une réussite, et dépenser quoi que ce soit
+ * creuse la dette.
+ */
+export function statusDepenseDuJour(depense: number, budgetDuJour: number): Status {
+  if (budgetDuJour <= 0) return depense === 0 ? 'future' : 'danger'
+  if (depense === 0) return 'ok'
+  const ratio = depense / budgetDuJour
   if (ratio <= 1) return 'ok'
   if (ratio <= 1.5) return 'warn'
   return 'danger'
@@ -145,7 +173,14 @@ export function computeBudget(data: BudgetData, today: string): VueBudget {
       date,
       depense,
       cagnotte: cumul,
-      status: date > today ? 'future' : statusJour(depense, plafondJour),
+      // Le futur se lit sur la cagnotte, le passé sur le dépassement du plafond.
+      // Aujourd'hui relève des deux : bloqué d'abord, dépassement ensuite.
+      status:
+        date > today
+          ? statusJourAVenir(cumul, plafondJour)
+          : date === today && cumul <= 0
+            ? 'danger'
+            : statusJour(depense, plafondJour),
     })
   }
 
@@ -165,6 +200,7 @@ export function computeBudget(data: BudgetData, today: string): VueBudget {
     dateReprise: bloques > 0 ? addDays(today, bloques) : null,
     budgetJourReprise: budgetJourReprise(dette, plafondJour),
     status,
+    statusDepenseAujourdhui: statusDepenseDuJour(depenseAujourdhui, Math.max(0, cagnotte)),
     jours,
   }
 }

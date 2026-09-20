@@ -92,9 +92,9 @@ export default function CalendarGrid({ jours, dateDebut, today }: Props) {
       {/* Legend */}
       <div className="flex gap-4 mt-4 flex-wrap">
         {[
-          { label: 'OK', color: '#22c55e' },
-          { label: 'Attention', color: '#f97316' },
-          { label: 'Dépassé', color: '#ef4444' },
+          { label: 'Dans les clous', color: '#22c55e' },
+          { label: 'Partiel', color: '#f97316' },
+          { label: 'Bloqué / dépassé', color: '#ef4444' },
           { label: 'À venir', color: '#d1d5db' },
         ].map(l => (
           <div key={l.label} className="flex items-center gap-1.5">
