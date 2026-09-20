@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BudgetData } from '@/lib/types'
-import { computeBudget } from '@/lib/budget'
+import { ReponseBudget } from '@/lib/types'
 import Sidebar from '@/components/Sidebar'
 import HeroKPI from '@/components/HeroKPI'
 import KPICard from '@/components/KPICard'
@@ -10,23 +9,24 @@ import CalendarGrid from '@/components/Calendar'
 import BudgetPieChart from '@/components/PieChart'
 import BudgetLineChart from '@/components/LineChart'
 import TransactionList from '@/components/TransactionList'
-import { fmt, fmtDate } from '@/lib/budget'
+import { fmt, fmtDate, pieDataDe, lineDataDe } from '@/lib/budget'
 
 export default function Dashboard() {
-  const [data, setData] = useState<BudgetData | null>(null)
+  // La vue arrive calculée par le serveur : cette page n'applique aucune règle métier.
+  const [vue, setVue] = useState<ReponseBudget | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   const fetchData = async () => {
     try {
       const res = await fetch('/api/budget')
-      if (!res.ok) throw new Error('API error')
       const json = await res.json()
-      setData(json)
+      if (!res.ok) throw new Error(json.error ?? 'Erreur API')
+      setVue(json)
       setLastUpdated(new Date())
       setError(null)
     } catch (e) {
-      setError('Erreur de chargement des données')
+      setError(e instanceof Error ? e.message : 'Erreur de chargement des données')
     }
   }
 
@@ -37,18 +37,18 @@ export default function Dashboard() {
   }, [])
 
   if (error) return (
-    <div className="flex h-screen items-center justify-center bg-[#faf7f0] dark:bg-[#111111]">
-      <p className="text-danger font-bold text-xl">{error}</p>
+    <div className="flex h-screen items-center justify-center bg-[#faf7f0] dark:bg-[#111111] px-8">
+      <p className="text-danger font-bold text-xl text-center">{error}</p>
     </div>
   )
 
-  if (!data) return (
+  if (!vue) return (
     <div className="flex h-screen items-center justify-center bg-[#faf7f0] dark:bg-[#111111]">
       <p className="text-gray-500 animate-pulse font-inter text-lg">Chargement...</p>
     </div>
   )
 
-  const computed = computeBudget(data)
+  const depenseAujourdhui = vue.jours.find(j => j.date === vue.today)?.depense ?? 0
 
   return (
     <div className="flex min-h-screen bg-[#faf7f0] dark:bg-[#111111]">
@@ -61,7 +61,7 @@ export default function Dashboard() {
               TABLEAU DE BORD
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {data.date_debut} → {data.date_fin}
+              {vue.dateDebut} → {vue.dateFin}
               {lastUpdated && (
                 <span className="ml-3 text-xs opacity-60">
                   Mis à jour {lastUpdated.toLocaleTimeString('fr-FR')}
@@ -73,34 +73,34 @@ export default function Dashboard() {
 
         {/* Hero */}
         <div className="mb-8">
-          <HeroKPI computed={computed} />
+          <HeroKPI vue={vue} />
         </div>
 
         {/* KPI cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <KPICard
             title="Budget aujourd'hui"
-            value={fmt(computed.budgetAujourdhui)}
-            subtitle="cumul disponible"
-            color="ok"
+            value={fmt(vue.budgetAujourdhui)}
+            subtitle="cagnotte disponible"
+            color={vue.budgetAujourdhui > 0 ? 'ok' : 'danger'}
           />
           <KPICard
-            title="Dette"
-            value={`${computed.detteJours} j`}
-            subtitle={computed.detteJours > 0 ? 'jours bloqués' : 'aucune dette'}
-            color={computed.detteJours > 0 ? 'danger' : 'ok'}
+            title="Jours bloqués"
+            value={`${vue.joursBloques} j`}
+            subtitle={vue.joursBloques > 0 ? `dette de ${vue.detteJours.toFixed(1).replace('.', ',')} j` : 'aucune dette'}
+            color={vue.joursBloques > 0 ? 'danger' : 'ok'}
           />
           <KPICard
             title="Reprise"
-            value={computed.detteJours > 0 ? fmtDate(computed.repriseDateStr) : 'Aujourd\'hui'}
-            subtitle="date de reprise"
-            color={computed.detteJours > 0 ? 'warn' : 'ok'}
+            value={vue.dateReprise ? fmtDate(vue.dateReprise) : "Aujourd'hui"}
+            subtitle={vue.dateReprise ? `avec ${fmt(vue.budgetJourReprise)}` : 'pas de blocage'}
+            color={vue.dateReprise ? 'warn' : 'ok'}
           />
           <KPICard
             title="Dépense aujourd'hui"
-            value={fmt(computed.depenseAujourdhui)}
-            subtitle={`plafond: ${fmt(data.plafond_jour)}`}
-            color={computed.depenseAujourdhui > data.plafond_jour * 1.5 ? 'danger' : computed.depenseAujourdhui > data.plafond_jour ? 'warn' : 'ok'}
+            value={fmt(depenseAujourdhui)}
+            subtitle={`plafond : ${fmt(vue.plafondJour)}`}
+            color={depenseAujourdhui > vue.plafondJour * 1.5 ? 'danger' : depenseAujourdhui > vue.plafondJour ? 'warn' : 'ok'}
           />
         </div>
 
@@ -109,7 +109,7 @@ export default function Dashboard() {
           <h2 className="font-inter font-black text-sm uppercase tracking-widest text-gray-600 dark:text-gray-400 mb-3">
             Calendrier du mois
           </h2>
-          <CalendarGrid dayStats={computed.dayStats} dateDebut={data.date_debut} />
+          <CalendarGrid jours={vue.jours} dateDebut={vue.dateDebut} today={vue.today} />
         </div>
 
         {/* Charts */}
@@ -118,13 +118,13 @@ export default function Dashboard() {
             <h2 className="font-inter font-black text-sm uppercase tracking-widest text-gray-600 dark:text-gray-400 mb-4">
               Répartition des dépenses
             </h2>
-            <BudgetPieChart pieData={computed.pieData} />
+            <BudgetPieChart pieData={pieDataDe(vue.depenses)} />
           </div>
           <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 shadow-sm">
             <h2 className="font-inter font-black text-sm uppercase tracking-widest text-gray-600 dark:text-gray-400 mb-4">
               Évolution du solde
             </h2>
-            <BudgetLineChart lineData={computed.lineData} />
+            <BudgetLineChart lineData={lineDataDe(vue.jours, vue.soldeDepart, vue.today)} />
           </div>
         </div>
 
@@ -133,7 +133,7 @@ export default function Dashboard() {
           <h2 className="font-inter font-black text-sm uppercase tracking-widest text-gray-600 dark:text-gray-400 mb-4">
             Historique des transactions
           </h2>
-          <TransactionList depenses={data.depenses} />
+          <TransactionList depenses={vue.depenses} />
         </div>
       </main>
     </div>

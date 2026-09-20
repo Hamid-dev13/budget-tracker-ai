@@ -1,4 +1,4 @@
-# Stage 1: Builder
+# Stage 1: Builder — construit le dashboard ET le binaire MCP
 FROM node:20-alpine AS builder
 WORKDIR /app
 
@@ -8,6 +8,7 @@ RUN npm ci
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
+RUN npm run build:mcp
 
 # Stage 2: Runner
 FROM node:20-alpine AS runner
@@ -22,6 +23,8 @@ RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+# Le serveur MCP stdio, pour un lancement via `docker compose run --rm -T app node dist/mcp-server.mjs`
+COPY --from=builder /app/dist ./dist
 
 # data/ is bind-mounted at runtime — DO NOT COPY
 

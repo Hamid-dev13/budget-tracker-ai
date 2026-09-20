@@ -6,9 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build:mcp": "esbuild mcp/stdio.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/mcp-server.mjs --log-level=warning"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.47.0",
     "next": "14.2.35",
@@ -16,17 +20,20 @@
     "react": "^18",
     "react-dom": "^18",
     "recharts": "^2.12.7",
-    "tailwind-merge": "^2.5.2"
+    "tailwind-merge": "^2.5.2",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
+    "esbuild": "^0.28.2",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }
