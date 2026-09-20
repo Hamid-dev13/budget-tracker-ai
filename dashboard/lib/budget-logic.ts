@@ -29,6 +29,13 @@ export interface JourStat {
   date: string
   depense: number
   cagnotte: number
+  /**
+   * Ce qu'on peut dépenser ce jour-là en gardant le rythme : 0 si le jour est
+   * bloqué, le reliquat le jour de la reprise, le plafond ensuite. Volontairement
+   * borné au plafond — la cagnotte reportée dirait davantage, mais un calendrier
+   * qui affiche un cumul croissant se lit comme un solde, pas comme un budget.
+   */
+  budgetDuJour: number
   status: Status
 }
 
@@ -173,6 +180,7 @@ export function computeBudget(data: BudgetData, today: string): VueBudget {
       date,
       depense,
       cagnotte: cumul,
+      budgetDuJour: Math.min(Math.max(cumul, 0), plafondJour),
       // Le futur se lit sur la cagnotte, le passé sur le dépassement du plafond.
       // Aujourd'hui relève des deux : bloqué d'abord, dépassement ensuite.
       status:

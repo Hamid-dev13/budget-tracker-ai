@@ -56,9 +56,9 @@ describe('pieDataDe', () => {
 
 describe('lineDataDe', () => {
   const jours: JourStat[] = [
-    { date: '2026-09-19', depense: 110.7, cagnotte: -90.03, status: 'danger' },
-    { date: '2026-09-20', depense: 0, cagnotte: -69.37, status: 'ok' },
-    { date: '2026-09-21', depense: 0, cagnotte: -48.7, status: 'future' },
+    { date: '2026-09-19', depense: 110.7, cagnotte: -90.03, budgetDuJour: 0, status: 'danger' },
+    { date: '2026-09-20', depense: 0, cagnotte: -69.37, budgetDuJour: 0, status: 'danger' },
+    { date: '2026-09-21', depense: 0, cagnotte: -48.7, budgetDuJour: 0, status: 'danger' },
   ]
 
   it('suit le solde restant jour après jour', () => {

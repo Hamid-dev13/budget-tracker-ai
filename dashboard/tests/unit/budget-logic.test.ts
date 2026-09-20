@@ -280,6 +280,22 @@ describe('computeBudget', () => {
     expect(computeBudget(REEL, '2026-09-22').joursBloques).toBe(2)
   })
 
+  it('donne à chaque jour le montant à afficher dans sa case', () => {
+    const vue = computeBudget(REEL, '2026-09-20')
+    const jour = (date: string) => vue.jours.find(j => j.date === date)!
+
+    // Jours bloqués : rien à dépenser, et c'est ce que la case doit dire.
+    expect(jour('2026-09-21').budgetDuJour).toBe(0)
+    expect(jour('2026-09-23').budgetDuJour).toBe(0)
+
+    // Jour de reprise : le reliquat, pas un plafond plein.
+    expect(jour('2026-09-24').budgetDuJour).toBeCloseTo(13.3, 2)
+
+    // Au-delà, le rythme nominal reprend : le plafond, pas la cagnotte cumulée.
+    expect(jour('2026-09-25').budgetDuJour).toBeCloseTo(20.67, 2)
+    expect(jour('2026-09-30').budgetDuJour).toBeCloseTo(20.67, 2)
+  })
+
   it('expose le statut de la dépense du jour, pour que le dashboard ne le recalcule pas', () => {
     // 20/09 : bloqué (budget 0) et rien dépensé → surtout pas 'ok'.
     expect(computeBudget(REEL, '2026-09-20').statusDepenseAujourdhui).toBe('future')

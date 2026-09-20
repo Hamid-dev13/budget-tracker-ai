@@ -9,14 +9,21 @@ const DATE_DEBUT = '2026-09-01'
 const TODAY = '2026-09-19'
 
 // Le 19/09 est la journée de régression : 110,70 € sur un plafond de 20,67 €.
+const PLAFOND = 20.67
+
+// Reproduit la journée réelle : 110,70 € le 19/09 → 20 au 23 bloqués,
+// reprise le 24/09 avec 13,30 €.
 const jours: JourStat[] = Array.from({ length: 30 }, (_, i) => {
   const jour = i + 1
-  const passe = jour <= 19
+  const bloque = jour >= 20 && jour <= 23
+  const reprise = jour === 24
+  const budgetDuJour = bloque ? 0 : reprise ? 13.3 : PLAFOND
   return {
     date: `2026-09-${String(jour).padStart(2, '0')}`,
     depense: jour === 19 ? 110.7 : 0,
     cagnotte: 0,
-    status: jour === 19 ? 'danger' : passe ? 'ok' : 'future',
+    budgetDuJour,
+    status: jour === 19 || bloque ? 'danger' : reprise ? 'warn' : jour < 19 ? 'ok' : 'future',
   }
 })
 
@@ -45,5 +52,19 @@ describe('CalendarGrid — encombrement', () => {
 
   it('affiche le montant dans la cellule, pas seulement en infobulle', () => {
     expect(html()).toContain('110,70 €')
+  })
+
+  it('annonce 0,00 € sur les jours bloqués — le rouge seul ne les distingue pas du dépassement', () => {
+    const markup = html()
+    // 20, 21, 22 et 23 : quatre cases bloquées, chacune porte son 0,00 €.
+    // On compte dans les cases, pas dans les infobulles.
+    const zeros = markup.match(/>0,00 €<\/span>/g) ?? []
+    expect(zeros.length).toBe(4)
+  })
+
+  it('annonce le reliquat du jour de reprise et le plafond des jours normaux', () => {
+    const markup = html()
+    expect(markup).toContain('13,30 €')
+    expect(markup).toContain('20,67 €')
   })
 })

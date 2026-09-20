@@ -58,7 +58,16 @@ export default function CalendarGrid({ jours, dateDebut, today }: Props) {
           const isToday = dateStr === today
 
           const aVenir = cell.stat?.status === 'future'
-          const montant = cell.stat && cell.stat.depense > 0 ? fmt(cell.stat.depense) : null
+          // Le rouge dit « bloqué ou dépassé » sans les distinguer : c'est le
+          // montant qui tranche. Un jour vécu montre ce qu'on a dépensé, un jour
+          // à venir ce qu'on pourra dépenser — 0,00 € s'il est bloqué.
+          const montant = !cell.stat
+            ? null
+            : cell.stat.depense > 0
+              ? fmt(cell.stat.depense)
+              : cell.stat.date >= today
+                ? fmt(cell.stat.budgetDuJour)
+                : null
 
           return (
             <div
@@ -67,7 +76,13 @@ export default function CalendarGrid({ jours, dateDebut, today }: Props) {
               // cellule aussi haute et le mois débordait du viewport.
               className="h-16 rounded-lg flex flex-col items-center justify-center gap-0.5 relative"
               style={{ backgroundColor: color }}
-              title={cell.stat ? fmt(cell.stat.depense) : ''}
+              title={
+                cell.stat
+                  ? cell.stat.depense > 0
+                    ? `Dépensé : ${fmt(cell.stat.depense)}`
+                    : `Budget du jour : ${fmt(cell.stat.budgetDuJour)}`
+                  : ''
+              }
             >
               <span
                 className={`font-inter font-black text-sm leading-none ${
@@ -77,7 +92,11 @@ export default function CalendarGrid({ jours, dateDebut, today }: Props) {
                 {cell.day}
               </span>
               {montant && (
-                <span className="font-inter text-[10px] leading-none text-white/90 tabular-nums">
+                <span
+                  className={`font-inter text-[10px] leading-none tabular-nums ${
+                    aVenir ? 'text-gray-500' : 'text-white/90'
+                  }`}
+                >
                   {montant}
                 </span>
               )}
