@@ -107,8 +107,10 @@ cd dashboard && npm test                              # vitest, toutes les couch
 npx tsc --noEmit                                      # typage
 
 # Recette API (sur un budget JETABLE — la recette écrit et supprime)
+# Même règle que le smoke test : le port est publié sur BIND_ADDR, pas sur localhost.
 docker compose -f docker-compose.recette.yml up -d --build     # port 3002
-BASE_URL=http://localhost:3002 ./tests/api/test_dashboard_api.sh
+set -a; . ./.env; set +a
+BASE_URL="http://${BIND_ADDR:-127.0.0.1}:3002" ./tests/api/test_dashboard_api.sh
 docker compose -f docker-compose.recette.yml down && rm -f data/budget.recette.json
 
 # Serveur MCP

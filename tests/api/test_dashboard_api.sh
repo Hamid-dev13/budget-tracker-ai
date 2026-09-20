@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # Recette HTTP des routes du dashboard.
-# Usage : BASE_URL=http://localhost:3001 BUDGET_FILE=data/budget.recette.json ./tests/api/test_dashboard_api.sh
+# Usage : BASE_URL=http://127.0.0.1:3002 BUDGET_FILE=data/budget.recette.json ./tests/api/test_dashboard_api.sh
 #
 # Le serveur visé DOIT pointer sur un budget jetable : la recette écrit et supprime.
+# Le défaut vise la recette (3002) et son budget jetable — les deux doivent
+# toujours désigner le même environnement. Sur le lab, le port est publié sur
+# BIND_ADDR et non sur la loopback : passer BASE_URL explicitement.
 
 set -uo pipefail
 
-BASE_URL="${BASE_URL:-http://localhost:3001}"
+BASE_URL="${BASE_URL:-http://127.0.0.1:3002}"
 BUDGET_FILE="${BUDGET_FILE:-data/budget.recette.json}"
 
 ok=0
