@@ -55,16 +55,28 @@ valeur() {
 echo "Recette API — $BASE_URL"
 echo
 
-# Garde-fou : le serveur visé doit écrire dans le fichier que ce script pilote,
-# sinon tous les cas échouent pour une raison sans rapport avec le code.
-rm -f "$BUDGET_FILE"
-curl -s -o /dev/null -X POST -H 'content-type: application/json' \
-  -d '{"solde":1,"date_fin":"2099-01-01","date_debut":"2099-01-01"}' "$BASE_URL/api/budget"
-if [ ! -f "$BUDGET_FILE" ]; then
-  echo "  ABANDON : $BASE_URL n'écrit pas dans $BUDGET_FILE."
+# Garde-fou : le serveur visé doit lire le fichier que ce script pilote, sinon
+# tous les cas échouent pour une raison sans rapport avec le code.
+#
+# On écrit une sentinelle dans NOTRE fichier et on vérifie que le serveur la
+# relit. Sonder par un POST reviendrait à écraser le budget de la cible pour
+# découvrir ensuite qu'on s'est trompé de cible — sur le port 3000, ce serait
+# la prod. Ici la vérification est un GET : se tromper ne coûte rien.
+SENTINELLE=4242.42
+cat > "$BUDGET_FILE" <<SENTINELLE_JSON
+{"solde_depart": $SENTINELLE, "date_debut": "2099-01-01", "date_fin": "2099-01-31", "depenses": []}
+SENTINELLE_JSON
+
+lu=$(curl -s "$BASE_URL/api/budget?today=2099-01-01" \
+  | python3 -c "import json,sys; print(json.load(sys.stdin).get('soldeDepart',''))" 2>/dev/null)
+
+if [ "$lu" != "$SENTINELLE" ]; then
+  rm -f "$BUDGET_FILE"
+  echo "  ABANDON : $BASE_URL ne lit pas $BUDGET_FILE."
+  echo "  Rien n'a été écrit sur $BASE_URL — sa cible est intacte."
   echo "  Lance un serveur dont BUDGET_PATH pointe sur ce fichier, par exemple :"
   echo "    docker compose -f docker-compose.recette.yml up -d --build"
-  echo "    BASE_URL=http://localhost:3002 ./tests/api/test_dashboard_api.sh"
+  echo "    BASE_URL=http://\${BIND_ADDR:-127.0.0.1}:3002 ./tests/api/test_dashboard_api.sh"
   exit 2
 fi
 
